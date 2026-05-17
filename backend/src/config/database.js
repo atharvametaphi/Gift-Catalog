@@ -14,6 +14,14 @@ const safeCreateCollection = async (model) => {
   }
 };
 
+const maskMongoUri = (uri) => {
+  if (typeof uri !== "string") {
+    return "";
+  }
+
+  return uri.replace(/(mongodb(?:\+srv)?:\/\/[^:]+:)([^@]+)(@)/i, "$1****$3");
+};
+
 export const connectDatabase = async () => {
   mongoose.set("strictQuery", true);
   await mongoose.connect(env.mongodbUri);
@@ -22,5 +30,5 @@ export const connectDatabase = async () => {
     safeCreateCollection(SubCategory),
     safeCreateCollection(Item),
   ]);
-  console.log(`MongoDB connected: ${env.mongodbUri}`);
+  console.log(`MongoDB connected: ${maskMongoUri(env.mongodbUri)}`);
 };

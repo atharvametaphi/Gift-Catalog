@@ -31,8 +31,9 @@ app.use(
 
       const exactMatch = env.corsOrigins.includes(origin);
       const localDevOriginPattern = /^http:\/\/(localhost|127\.0\.0\.1):\d+$/;
+      const vercelOriginPattern = /^https:\/\/[a-z0-9-]+\.vercel\.app$/i;
 
-      if (exactMatch || localDevOriginPattern.test(origin)) {
+      if (exactMatch || localDevOriginPattern.test(origin) || vercelOriginPattern.test(origin)) {
         callback(null, true);
         return;
       }
