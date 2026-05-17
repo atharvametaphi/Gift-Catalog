@@ -14,12 +14,15 @@ import env from "./config/env.js";
 import { errorHandler, notFound } from "./middleware/errorMiddleware.js";
 
 const app = express();
+const API_PREFIX = "/api";
 
 const uploadPath = path.resolve(process.cwd(), env.uploadDir);
 if (!fs.existsSync(uploadPath)) {
   fs.mkdirSync(uploadPath, { recursive: true });
 }
 
+// Render runs behind a proxy; trust it for correct IP/rate-limit behavior.
+app.set("trust proxy", 1);
 app.use(helmet());
 app.use(
   cors({
@@ -29,11 +32,9 @@ app.use(
         return;
       }
 
-      const exactMatch = env.corsOrigins.includes(origin);
-      const localDevOriginPattern = /^http:\/\/(localhost|127\.0\.0\.1):\d+$/;
-      const vercelOriginPattern = /^https:\/\/[a-z0-9-]+\.vercel\.app$/i;
+      const exactMatch = env.clientUrls.includes(origin);
 
-      if (exactMatch || localDevOriginPattern.test(origin) || vercelOriginPattern.test(origin)) {
+      if (exactMatch) {
         callback(null, true);
         return;
       }
@@ -41,6 +42,8 @@ app.use(
       callback(new Error(`CORS blocked for origin: ${origin}`));
     },
     credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   }),
 );
 app.use(
@@ -56,7 +59,12 @@ app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(`/${env.uploadDir}`, express.static(uploadPath));
 
-app.get("/api/health", (req, res) => {
+// Render health check endpoint.
+app.get("/", (req, res) => {
+  res.status(200).send("Backend Running");
+});
+
+app.get(`${API_PREFIX}/health`, (req, res) => {
   res.status(200).json({
     status: "ok",
     service: "gift-catalog-backend",
@@ -64,11 +72,12 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-app.use("/api/auth", authRoutes);
-app.use("/api/me", meRoutes);
-app.use("/api/categories", categoryRoutes);
-app.use("/api/subcategories", subCategoryRoutes);
-app.use("/api/items", itemRoutes);
+// Keep all business routes under a single /api prefix.
+app.use(`${API_PREFIX}/auth`, authRoutes);
+app.use(`${API_PREFIX}/me`, meRoutes);
+app.use(`${API_PREFIX}/categories`, categoryRoutes);
+app.use(`${API_PREFIX}/subcategories`, subCategoryRoutes);
+app.use(`${API_PREFIX}/items`, itemRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

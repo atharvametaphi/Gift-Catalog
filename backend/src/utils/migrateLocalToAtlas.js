@@ -7,8 +7,8 @@ dotenv.config();
 const COLLECTIONS = ["users", "categories", "subcategories", "items"];
 
 const localUri = process.env.LOCAL_MONGODB_URI || "mongodb://localhost:27017/GiftCatalog";
-const atlasUri = process.env.ATLAS_MONGODB_URI || process.env.MONGODB_URI || "";
-const atlasUriStandard = process.env.ATLAS_MONGODB_URI_STANDARD || process.env.MONGODB_URI_STANDARD || "";
+const atlasUri = process.env.ATLAS_MONGODB_URI || process.env.MONGO_URI || "";
+const atlasUriStandard = process.env.ATLAS_MONGODB_URI_STANDARD || process.env.MONGO_URI_STANDARD || "";
 const dnsServers = String(process.env.DNS_SERVERS || "1.1.1.1,8.8.8.8")
   .split(",")
   .map((entry) => entry.trim())

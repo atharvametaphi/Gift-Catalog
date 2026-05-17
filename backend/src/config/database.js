@@ -52,23 +52,24 @@ const initializeCollections = async () => {
 };
 
 export const connectDatabase = async () => {
+  // Keep startup deterministic in production: connect DB before accepting traffic.
   mongoose.set("strictQuery", true);
   applyDnsServers();
 
   try {
-    await mongoose.connect(env.mongodbUri);
+    await mongoose.connect(env.mongoUri);
     await initializeCollections();
-    console.log(`MongoDB connected: ${maskMongoUri(env.mongodbUri)}`);
+    console.log(`MongoDB connected: ${maskMongoUri(env.mongoUri)}`);
     return;
   } catch (error) {
-    if (!isSrvDnsError(error) || !env.mongodbUriStandard) {
+    if (!isSrvDnsError(error) || !env.mongoUriStandard) {
       throw error;
     }
 
-    console.warn("SRV DNS lookup failed. Retrying with MONGODB_URI_STANDARD...");
+    console.warn("SRV DNS lookup failed. Retrying with MONGO_URI_STANDARD...");
     await mongoose.disconnect().catch(() => {});
-    await mongoose.connect(env.mongodbUriStandard);
+    await mongoose.connect(env.mongoUriStandard);
     await initializeCollections();
-    console.log(`MongoDB connected: ${maskMongoUri(env.mongodbUriStandard)}`);
+    console.log(`MongoDB connected: ${maskMongoUri(env.mongoUriStandard)}`);
   }
 };

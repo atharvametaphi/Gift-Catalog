@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "main": "src/server.js",
+  "main": "index.js",
   "scripts": {
-    "dev": "nodemon src/server.js",
-    "start": "node src/server.js",
+    "dev": "nodemon index.js",
+    "start": "node index.js",
     "seed:admin": "node src/utils/seedAdmin.js",
     "create:collections": "node src/utils/createCollections.js",
     "migrate:local-to-atlas": "node src/utils/migrateLocalToAtlas.js"
