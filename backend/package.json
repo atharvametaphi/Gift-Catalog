@@ -7,7 +7,9 @@
   "scripts": {
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
-    "seed:admin": "node src/utils/seedAdmin.js"
+    "seed:admin": "node src/utils/seedAdmin.js",
+    "create:collections": "node src/utils/createCollections.js",
+    "migrate:local-to-atlas": "node src/utils/migrateLocalToAtlas.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -25,4 +27,3 @@
     "nodemon": "^3.1.4"
   }
 }
-
