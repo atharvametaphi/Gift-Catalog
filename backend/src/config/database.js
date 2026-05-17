@@ -51,25 +51,48 @@ const initializeCollections = async () => {
   ]);
 };
 
+mongoose.connection.on("connected", () => {
+  console.log("MongoDB connection established.");
+});
+
+mongoose.connection.on("error", (error) => {
+  console.error("MongoDB connection error:", error.message);
+});
+
+mongoose.connection.on("disconnected", () => {
+  console.warn("MongoDB disconnected.");
+});
+
 export const connectDatabase = async () => {
   // Keep startup deterministic in production: connect DB before accepting traffic.
   mongoose.set("strictQuery", true);
   applyDnsServers();
+  console.log(`Connecting to MongoDB: ${maskMongoUri(env.mongoUri)}`);
 
   try {
-    await mongoose.connect(env.mongoUri);
+    await mongoose.connect(env.mongoUri, {
+      serverSelectionTimeoutMS: 30000,
+    });
     await initializeCollections();
     console.log(`MongoDB connected: ${maskMongoUri(env.mongoUri)}`);
     return;
   } catch (error) {
     if (!isSrvDnsError(error) || !env.mongoUriStandard) {
-      throw error;
+      throw new Error(`MongoDB connection failed: ${error.message}`);
     }
 
     console.warn("SRV DNS lookup failed. Retrying with MONGO_URI_STANDARD...");
     await mongoose.disconnect().catch(() => {});
-    await mongoose.connect(env.mongoUriStandard);
+    await mongoose.connect(env.mongoUriStandard, {
+      serverSelectionTimeoutMS: 30000,
+    });
     await initializeCollections();
     console.log(`MongoDB connected: ${maskMongoUri(env.mongoUriStandard)}`);
+  }
+};
+
+export const disconnectDatabase = async () => {
+  if (mongoose.connection.readyState !== 0) {
+    await mongoose.disconnect();
   }
 };

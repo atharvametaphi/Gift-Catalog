@@ -1,41 +1,81 @@
-import app from "./src/app.js";
-import env from "./src/config/env.js";
-import { connectDatabase } from "./src/config/database.js";
+let server = null;
+let disconnectDatabase = null;
 
-let server;
+const stopServer = async () =>
+  new Promise((resolve) => {
+    if (!server) {
+      resolve();
+      return;
+    }
 
-const shutdown = (signal, error = null) => {
+    server.close(() => {
+      resolve();
+    });
+  });
+
+const shutdown = async (signal, error = null) => {
   if (error) {
     console.error(`[${signal}]`, error);
   } else {
     console.log(`Received ${signal}. Shutting down gracefully...`);
   }
 
-  if (server) {
-    server.close(() => {
-      process.exit(error ? 1 : 0);
+  await stopServer().catch((closeError) => {
+    console.error("Error while closing HTTP server:", closeError);
+  });
+
+  if (typeof disconnectDatabase === "function") {
+    await disconnectDatabase().catch((dbError) => {
+      console.error("Error while disconnecting MongoDB:", dbError);
     });
-    return;
   }
 
   process.exit(error ? 1 : 0);
 };
 
+process.on("SIGINT", () => {
+  void shutdown("SIGINT");
+});
+
+process.on("SIGTERM", () => {
+  void shutdown("SIGTERM");
+});
+
+process.on("uncaughtException", (error) => {
+  void shutdown("uncaughtException", error);
+});
+
+process.on("unhandledRejection", (error) => {
+  void shutdown("unhandledRejection", error);
+});
+
 const startServer = async () => {
   try {
-    // Ensure database is ready before the API starts accepting requests.
-    await connectDatabase();
-    server = app.listen(process.env.PORT || 5000, () => {
-      console.log(`Server listening on port ${env.port}`);
+    const envModule = await import("./src/config/env.js");
+    const env = envModule.default;
+    const { validateEnv, envLoadMeta } = envModule;
+
+    validateEnv();
+    console.log(
+      `Environment loaded (${envLoadMeta.source}) | NODE_ENV=${env.nodeEnv} | PORT=${env.port} | CLIENT_URL=${env.clientUrls.join(",")}`,
+    );
+
+    const databaseModule = await import("./src/config/database.js");
+    const appModule = await import("./src/app.js");
+    const app = appModule.default;
+
+    disconnectDatabase = databaseModule.disconnectDatabase;
+
+    // Ensure MongoDB is connected before the app accepts requests.
+    await databaseModule.connectDatabase();
+
+    const PORT = process.env.PORT || 5000;
+    server = app.listen(PORT, () => {
+      console.log(`Server started on port ${PORT}`);
     });
   } catch (error) {
-    shutdown("startup_error", error);
+    await shutdown("startup_error", error);
   }
 };
 
-process.on("SIGINT", () => shutdown("SIGINT"));
-process.on("SIGTERM", () => shutdown("SIGTERM"));
-process.on("uncaughtException", (error) => shutdown("uncaughtException", error));
-process.on("unhandledRejection", (error) => shutdown("unhandledRejection", error));
-
-startServer();
+void startServer();
