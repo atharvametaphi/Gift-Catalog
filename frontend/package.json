@@ -1,0 +1,28 @@
+{
+  "name": "gift-catalog-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node ./scripts/run-vite.mjs dev",
+    "build": "node ./scripts/run-vite.mjs build",
+    "preview": "node ./scripts/run-vite.mjs preview"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.13.3",
+    "@emotion/styled": "^11.13.0",
+    "@mui/icons-material": "^5.16.7",
+    "@mui/material": "^5.16.7",
+    "axios": "^1.7.5",
+    "framer-motion": "^11.5.6",
+    "pdf-lib": "^1.17.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-hook-form": "^7.53.0",
+    "react-router-dom": "^6.26.1",
+    "zustand": "^4.5.5"
+  },
+  "devDependencies": {
+    "vite": "^8.0.13"
+  }
+}
