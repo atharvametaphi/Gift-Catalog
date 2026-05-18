@@ -2,7 +2,7 @@
   "version": 2,
   "builds": [
     {
-      "src": "frontend/package.json",
+      "src": "Corporategifting/package.json",
       "use": "@vercel/static-build",
       "config": {
         "distDir": "dist"
@@ -20,7 +20,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "/frontend/$1"
+      "dest": "/Corporategifting/$1"
     }
   ]
 }

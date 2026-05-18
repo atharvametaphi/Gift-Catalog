@@ -1,6 +1,9 @@
 # Dependencies
 frontend/node_modules/
 backend/node_modules/
+Corporategifting/node_modules/
+Corporategifting/dist/
+Corporategifting/guidelines/
 
 # Environment files
 # frontend/.env
