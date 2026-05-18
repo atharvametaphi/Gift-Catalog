@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import {
   Box,
-  Card,
   Chip,
   IconButton,
   Stack,
@@ -14,9 +13,9 @@ import resolveIconComponent from "../utils/resolveIconComponent";
 
 const CheckCircleRoundedIcon = resolveIconComponent(CheckCircleRoundedIconRaw);
 const RadioButtonUncheckedRoundedIcon = resolveIconComponent(RadioButtonUncheckedRoundedIconRaw);
-const MotionCard = motion(Card);
+const MotionCard = motion(Box);
 const FALLBACK_IMAGE = `data:image/svg+xml;utf8,${encodeURIComponent(
-  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900"><defs><linearGradient id="bg" x1="0" x2="1"><stop offset="0" stop-color="#ddd6fe"/><stop offset="1" stop-color="#e0f2fe"/></linearGradient></defs><rect width="1200" height="900" fill="url(#bg)"/><rect x="160" y="160" width="880" height="580" rx="42" fill="#fff" stroke="#c4b5fd" stroke-width="8"/><rect x="250" y="260" width="700" height="120" rx="24" fill="#ede9fe"/><rect x="320" y="430" width="560" height="26" rx="13" fill="#fbcfe8"/><rect x="340" y="480" width="520" height="26" rx="13" fill="#bbf7d0"/><text x="600" y="680" text-anchor="middle" font-size="52" font-family="Arial, Helvetica, sans-serif" fill="#44403c">Gift Catalog</text></svg>',
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900"><defs><linearGradient id="bg" x1="0" x2="1"><stop offset="0" stop-color="#f3eee3"/><stop offset="1" stop-color="#ece4d3"/></linearGradient></defs><rect width="1200" height="900" fill="url(#bg)"/><rect x="160" y="160" width="880" height="580" rx="42" fill="#fff" stroke="#c8a24c" stroke-width="8"/><rect x="250" y="260" width="700" height="120" rx="24" fill="#f8f4ea"/><rect x="320" y="430" width="560" height="26" rx="13" fill="#efe7d5"/><rect x="340" y="480" width="520" height="26" rx="13" fill="#e8dcc2"/><text x="600" y="680" text-anchor="middle" font-size="52" font-family="Arial, Helvetica, sans-serif" fill="#1f2937">Gift Catalog</text></svg>',
 )}`;
 
 const CatalogItemCard = ({
@@ -84,7 +83,6 @@ const CatalogItemCard = ({
   if (listMode) {
     return (
       <MotionCard
-        whileHover={{ y: -2 }}
         transition={{ duration: 0.22, ease: "easeOut" }}
         onClick={onOpen}
         role="button"
@@ -92,8 +90,10 @@ const CatalogItemCard = ({
         sx={{
           borderRadius: "12px",
           border: "1px solid",
-          borderColor: selected ? "primary.main" : "divider",
+          borderColor: selected ? "primary.main" : "transparent",
           overflow: "hidden",
+          boxShadow: "none",
+          backgroundColor: "transparent",
         }}
       >
         <Stack direction={{ xs: "column", md: "row" }} spacing={1.8} sx={{ p: 1.8 }}>
@@ -175,7 +175,6 @@ const CatalogItemCard = ({
 
   return (
     <MotionCard
-      whileHover={{ y: -4 }}
       transition={{ duration: 0.24, ease: "easeOut" }}
       onClick={onOpen}
       onKeyDown={(event) => {
@@ -187,13 +186,13 @@ const CatalogItemCard = ({
       role="button"
       tabIndex={0}
       sx={{
-        borderRadius: "12px",
+        borderRadius: "10px",
         border: "1px solid",
-        borderColor: selected ? "primary.main" : "divider",
+        borderColor: selected ? "primary.main" : "transparent",
         overflow: "hidden",
         cursor: "pointer",
-        backgroundColor: "background.paper",
-        boxShadow: selected ? "0 12px 24px rgba(196,181,253,0.28)" : "0 8px 20px rgba(186,230,253,0.2)",
+        backgroundColor: "transparent",
+        boxShadow: "none",
       }}
     >
       <Box sx={{ p: 1.1, pb: 0 }}>
@@ -204,7 +203,7 @@ const CatalogItemCard = ({
             borderRadius: "10px",
             overflow: "hidden",
             position: "relative",
-            backgroundColor: "#f5f5f4",
+            backgroundColor: "#f7f4ee",
           }}
         >
           <IconButton

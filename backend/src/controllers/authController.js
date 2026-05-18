@@ -22,8 +22,8 @@ export const login = asyncHandler(async (req, res) => {
     return res.status(401).json({ message: "Invalid email or password." });
   }
 
-  if (user.role !== "admin") {
-    return res.status(403).json({ message: "Only admin access is allowed." });
+  if (user.status === "inactive") {
+    return res.status(403).json({ message: "User account is inactive." });
   }
 
   const token = generateToken({
@@ -39,6 +39,7 @@ export const login = asyncHandler(async (req, res) => {
       name: user.name,
       email: user.email,
       role: user.role,
+      status: user.status || "active",
       createdAt: user.createdAt,
     },
   });
@@ -53,8 +54,8 @@ export const me = asyncHandler(async (req, res) => {
       name: user.name,
       email: user.email,
       role: user.role,
+      status: user.status || "active",
       createdAt: user.createdAt,
     },
   });
 });
-

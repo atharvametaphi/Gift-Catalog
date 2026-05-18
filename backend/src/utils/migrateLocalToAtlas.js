@@ -4,7 +4,15 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const COLLECTIONS = ["users", "categories", "subcategories", "items"];
+const COLLECTIONS = [
+  { source: "users", target: "users" },
+  { source: "categories", target: "categories" },
+  { source: "subcategories", target: "subcategories" },
+  { source: "products", target: "products" },
+  // Legacy support: migrate old items collection into products.
+  { source: "items", target: "products" },
+  { source: "catalogs", target: "catalogs" },
+];
 
 const localUri = process.env.LOCAL_MONGODB_URI || "mongodb://localhost:27017/GiftCatalog";
 const atlasUri = process.env.ATLAS_MONGODB_URI || process.env.MONGO_URI || "";
@@ -83,13 +91,13 @@ const run = async () => {
     console.log(`Local DB connected: ${maskMongoUri(localUri)}`);
     console.log(`Atlas DB connected: ${maskMongoUri(atlasConnectedUri)}`);
 
-    for (const collectionName of COLLECTIONS) {
-      const sourceCollection = localConn.db.collection(collectionName);
-      const targetCollection = atlasConn.db.collection(collectionName);
+    for (const { source, target } of COLLECTIONS) {
+      const sourceCollection = localConn.db.collection(source);
+      const targetCollection = atlasConn.db.collection(target);
 
       const sourceDocs = await sourceCollection.find({}).toArray();
       if (sourceDocs.length === 0) {
-        console.log(`[${collectionName}] local empty, skipped`);
+        console.log(`[${source} -> ${target}] local empty, skipped`);
         continue;
       }
 
@@ -105,7 +113,7 @@ const run = async () => {
       const atlasCount = await targetCollection.countDocuments();
 
       console.log(
-        `[${collectionName}] copied=${sourceDocs.length}, inserted=${result.upsertedCount || 0}, modified=${result.modifiedCount || 0}, atlasTotal=${atlasCount}`,
+        `[${source} -> ${target}] copied=${sourceDocs.length}, inserted=${result.upsertedCount || 0}, modified=${result.modifiedCount || 0}, atlasTotal=${atlasCount}`,
       );
     }
 

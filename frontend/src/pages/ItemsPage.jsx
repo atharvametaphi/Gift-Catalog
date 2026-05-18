@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Box,
@@ -9,6 +9,7 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Chip,
   FormControl,
   IconButton,
   InputLabel,
@@ -50,10 +51,11 @@ const readFileAsDataUrl = (file) =>
 const isDatabaseId = (value) => /^[a-fA-F0-9]{24}$/.test(value || "");
 
 const ItemsPage = () => {
-  const { dbCategories, dbSubCategories, catalogItems, addItem, updateItem, deleteItem } = useCatalogStore((state) => ({
+  const { dbCategories, dbSubCategories, dbItems, loadCatalogData, addItem, updateItem, deleteItem } = useCatalogStore((state) => ({
     dbCategories: state.dbCategories,
     dbSubCategories: state.dbSubCategories,
-    catalogItems: state.catalogItems,
+    dbItems: state.dbItems,
+    loadCatalogData: state.loadCatalogData,
     addItem: state.addItem,
     updateItem: state.updateItem,
     deleteItem: state.deleteItem,
@@ -68,6 +70,8 @@ const ItemsPage = () => {
   const { control, handleSubmit, reset, watch, setValue } = useForm({
     defaultValues: {
       name: "",
+      description: "",
+      status: "active",
       categoryId: "",
       subCategoryId: "",
     },
@@ -77,11 +81,11 @@ const ItemsPage = () => {
 
   const itemRows = useMemo(
     () =>
-      catalogItems.map((item) => ({
+      dbItems.map((item) => ({
         ...item,
         dbRecord: isDatabaseId(item.id),
       })),
-    [catalogItems],
+    [dbItems],
   );
 
   const availableSubCategories = useMemo(
@@ -91,6 +95,10 @@ const ItemsPage = () => {
       ),
     [dbSubCategories, selectedCategoryId],
   );
+
+  useEffect(() => {
+    loadCatalogData();
+  }, [loadCatalogData]);
 
   const handleFileSelection = async (event) => {
     const files = Array.from(event.target.files || []);
@@ -129,14 +137,14 @@ const ItemsPage = () => {
     setOpenDialog(false);
     setDialogMode("add");
     setActionRow(null);
-    reset({ name: "", categoryId: "", subCategoryId: "" });
+    reset({ name: "", description: "", status: "active", categoryId: "", subCategoryId: "" });
     setUploadedImages([]);
   };
 
   const openAddDialog = () => {
     setDialogMode("add");
     setActionRow(null);
-    reset({ name: "", categoryId: "", subCategoryId: "" });
+    reset({ name: "", description: "", status: "active", categoryId: "", subCategoryId: "" });
     setUploadedImages([]);
     setOpenDialog(true);
   };
@@ -149,6 +157,8 @@ const ItemsPage = () => {
     setDialogMode("edit");
     reset({
       name: actionRow.name,
+      description: actionRow.description || "",
+      status: actionRow.status || "active",
       categoryId: actionRow.categoryId || "",
       subCategoryId: actionRow.subCategoryId || "",
     });
@@ -168,7 +178,7 @@ const ItemsPage = () => {
       return;
     }
 
-    const confirmed = window.confirm(`Delete item "${actionRow.name}"?`);
+    const confirmed = window.confirm(`Delete product "${actionRow.name}"?`);
     if (!confirmed) {
       setActionAnchorEl(null);
       return;
@@ -179,13 +189,13 @@ const ItemsPage = () => {
       await deleteItem(actionRow.id);
       setSnackbar({
         open: true,
-        message: "Item deleted successfully.",
+        message: "Product deleted successfully.",
         severity: "success",
       });
     } catch (error) {
       setSnackbar({
         open: true,
-        message: error?.response?.data?.message || "Failed to delete item.",
+        message: error?.response?.data?.message || "Failed to delete product.",
         severity: "error",
       });
     } finally {
@@ -210,27 +220,25 @@ const ItemsPage = () => {
     try {
       const payload = {
         name: values.name,
-        categoryId: values.categoryId,
-        subCategoryId: values.subCategoryId,
+        description: values.description || "",
+        status: values.status,
+        categoryId: values.categoryId || null,
+        subCategoryId: values.subCategoryId || null,
         images: uploadedImages.map((image) => image.url),
       };
 
       if (dialogMode === "edit" && actionRow?.dbRecord) {
-        await updateItem({
-          id: actionRow.id,
-          ...payload,
-          description: actionRow.description || "",
-        });
+        await updateItem({ id: actionRow.id, ...payload });
         setSnackbar({
           open: true,
-          message: "Item updated successfully.",
+          message: "Product updated successfully.",
           severity: "success",
         });
       } else {
         await addItem(payload);
         setSnackbar({
           open: true,
-          message: "Item added successfully.",
+          message: "Product added successfully.",
           severity: "success",
         });
       }
@@ -238,12 +246,12 @@ const ItemsPage = () => {
       setOpenDialog(false);
       setDialogMode("add");
       setActionRow(null);
-      reset({ name: "", categoryId: "", subCategoryId: "" });
+      reset({ name: "", description: "", status: "active", categoryId: "", subCategoryId: "" });
       setUploadedImages([]);
     } catch (error) {
       setSnackbar({
         open: true,
-        message: error?.response?.data?.message || `Failed to ${dialogMode} item.`,
+        message: error?.response?.data?.message || `Failed to ${dialogMode} product.`,
         severity: "error",
       });
     } finally {
@@ -257,53 +265,23 @@ const ItemsPage = () => {
         <CardContent sx={{ p: 2.3 }}>
           <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1.3}>
             <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-              Item Management
+              Product Management
             </Typography>
-            <Button
-              variant="contained"
-              startIcon={<AddRoundedIcon />}
-              onClick={openAddDialog}
-            >
-              Add Item
+            <Button variant="contained" startIcon={<AddRoundedIcon />} onClick={openAddDialog}>
+              Add Product
             </Button>
           </Stack>
-          {/* {dbCategories.length === 0 ? (
-            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
-              Create a category first.
-            </Typography>
-          ) : null} */}
-          {dbCategories.length > 0 && dbSubCategories.length === 0 ? (
-            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
-              Create a sub-category first, then add items.
-            </Typography>
-          ) : null}
         </CardContent>
       </Card>
 
       <Dialog open={openDialog} onClose={closeDialog} fullWidth maxWidth="md">
-        <DialogTitle>{dialogMode === "edit" ? "Edit Item" : "Add Item"}</DialogTitle>
+        <DialogTitle>{dialogMode === "edit" ? "Edit Product" : "Add Product"}</DialogTitle>
         <Stack component="form" onSubmit={handleSubmit(onSubmit)}>
           <DialogContent>
             <Stack spacing={1.3}>
               <Controller
-                name="name"
-                control={control}
-                rules={{ required: "Item name is required" }}
-                render={({ field, fieldState }) => (
-                  <TextField
-                    {...field}
-                    size="small"
-                    label="Item Name"
-                    error={Boolean(fieldState.error)}
-                    helperText={fieldState.error?.message}
-                  />
-                )}
-              />
-
-              <Controller
                 name="categoryId"
                 control={control}
-                rules={{ required: "Category selection is required" }}
                 render={({ field, fieldState }) => (
                   <FormControl size="small" fullWidth error={Boolean(fieldState.error)}>
                     <InputLabel>Category Selection</InputLabel>
@@ -323,6 +301,7 @@ const ItemsPage = () => {
                         }
                       }}
                     >
+                      <MenuItem value="">No Category</MenuItem>
                       {dbCategories.map((category) => (
                         <MenuItem key={category.id} value={category.id}>
                           {category.name}
@@ -341,16 +320,62 @@ const ItemsPage = () => {
               <Controller
                 name="subCategoryId"
                 control={control}
-                rules={{ required: "Sub-category selection is required" }}
                 render={({ field, fieldState }) => (
                   <FormControl size="small" fullWidth error={Boolean(fieldState.error)}>
                     <InputLabel>Sub-category Selection</InputLabel>
                     <Select {...field} label="Sub-category Selection">
+                      <MenuItem value="">No Sub-Category</MenuItem>
                       {availableSubCategories.map((subCategory) => (
                         <MenuItem key={subCategory.id} value={subCategory.id}>
                           {subCategory.name}
                         </MenuItem>
                       ))}
+                    </Select>
+                    {fieldState.error ? (
+                      <Typography variant="caption" color="error" sx={{ pl: 1.7, pt: 0.5 }}>
+                        {fieldState.error.message}
+                      </Typography>
+                    ) : null}
+                  </FormControl>
+                )}
+              />
+              <Controller
+                name="name"
+                control={control}
+                rules={{ required: "Product name is required" }}
+                render={({ field, fieldState }) => (
+                  <TextField
+                    {...field}
+                    size="small"
+                    label="Product Name"
+                    error={Boolean(fieldState.error)}
+                    helperText={fieldState.error?.message}
+                  />
+                )}
+              />
+              <Controller
+                name="description"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    size="small"
+                    label="Description"
+                    multiline
+                    minRows={3}
+                  />
+                )}
+              />
+              <Controller
+                name="status"
+                control={control}
+                rules={{ required: "Status is required" }}
+                render={({ field, fieldState }) => (
+                  <FormControl size="small" fullWidth error={Boolean(fieldState.error)}>
+                    <InputLabel>Status</InputLabel>
+                    <Select {...field} label="Status">
+                      <MenuItem value="active">Active</MenuItem>
+                      <MenuItem value="inactive">Inactive</MenuItem>
                     </Select>
                     {fieldState.error ? (
                       <Typography variant="caption" color="error" sx={{ pl: 1.7, pt: 0.5 }}>
@@ -415,7 +440,7 @@ const ItemsPage = () => {
               Cancel
             </Button>
             <Button type="submit" variant="contained" startIcon={<AddRoundedIcon />} disabled={submitting}>
-              {submitting ? (dialogMode === "edit" ? "Saving..." : "Adding...") : dialogMode === "edit" ? "Save Changes" : "Add Item"}
+              {submitting ? (dialogMode === "edit" ? "Saving..." : "Adding...") : dialogMode === "edit" ? "Save Changes" : "Add Product"}
             </Button>
           </DialogActions>
         </Stack>
@@ -431,10 +456,6 @@ const ItemsPage = () => {
                 px: 1.25,
                 py: 0.9,
               },
-              "& .MuiTableCell-root + .MuiTableCell-root": {
-                borderLeft: "1px solid",
-                borderLeftColor: "divider",
-              },
               "& .MuiTableHead-root .MuiTableCell-root": {
                 borderBottomWidth: 1.5,
                 borderBottomStyle: "solid",
@@ -444,7 +465,9 @@ const ItemsPage = () => {
             <TableHead>
               <TableRow>
                 <TableCell sx={{ fontWeight: 700, minWidth: 86 }}>Preview</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Item Name</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Product Name</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Description</TableCell>
+                <TableCell sx={{ fontWeight: 700, width: 120 }}>Status</TableCell>
                 <TableCell sx={{ fontWeight: 700, width: 56 }}>Action</TableCell>
               </TableRow>
             </TableHead>
@@ -468,6 +491,24 @@ const ItemsPage = () => {
                     />
                   </TableCell>
                   <TableCell>{item.name}</TableCell>
+                  <TableCell sx={{ color: "text.secondary" }}>{item.description?.trim() || "-"}</TableCell>
+                  <TableCell>
+                    <Chip
+                      size="small"
+                      label={item.status === "inactive" ? "Inactive" : "Active"}
+                      color={item.status === "inactive" ? "default" : "success"}
+                      variant={item.status === "inactive" ? "outlined" : "filled"}
+                      sx={
+                        item.status === "inactive"
+                          ? undefined
+                          : {
+                              bgcolor: "#dcfce7",
+                              color: "#14532d",
+                              borderColor: "#86efac",
+                            }
+                      }
+                    />
+                  </TableCell>
                   <TableCell>
                     <Tooltip title={item.dbRecord ? "Actions" : "Dummy data row"}>
                       <span>

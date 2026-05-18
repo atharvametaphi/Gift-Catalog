@@ -2,50 +2,52 @@ import { createTheme } from "@mui/material/styles";
 
 const headingFont = "'Nunito', 'Manrope', 'Segoe UI', sans-serif";
 const bodyFont = "'Manrope', 'Segoe UI', sans-serif";
+const noShadows = Array.from({ length: 25 }, () => "none");
 
 const appTheme = createTheme({
+  shadows: noShadows,
   palette: {
     mode: "light",
     primary: {
-      main: "#c4b5fd",
-      light: "#ddd6fe",
-      dark: "#a78bfa",
-      contrastText: "#3f3a54",
+      main: "#c8a24c",
+      light: "#d7ba79",
+      dark: "#a8832f",
+      contrastText: "#ffffff",
     },
     secondary: {
-      main: "#bae6fd",
-      light: "#e0f2fe",
-      dark: "#7dd3fc",
-      contrastText: "#27546b",
+      main: "#ece6d8",
+      light: "#f5f2ea",
+      dark: "#d9d1bf",
+      contrastText: "#2f2b24",
     },
     info: {
-      main: "#fbcfe8",
-      light: "#fce7f3",
-      dark: "#f9a8d4",
+      main: "#b9a37a",
+      light: "#e9dfce",
+      dark: "#927a4f",
     },
     warning: {
-      main: "#fed7aa",
-      light: "#ffedd5",
-      dark: "#fdba74",
+      main: "#d5a86c",
+      light: "#eed8ba",
+      dark: "#b17e3e",
     },
     success: {
-      main: "#bbf7d0",
+      main: "#22c55e",
       light: "#dcfce7",
-      dark: "#86efac",
-      contrastText: "#1f5135",
+      dark: "#16a34a",
+      contrastText: "#ffffff",
     },
     background: {
-      default: "#fafaf9",
+      default: "#f6f4ef",
       paper: "#ffffff",
     },
     text: {
-      primary: "#44403c",
-      secondary: "#78716c",
+      primary: "#0f172a",
+      secondary: "#6b7280",
     },
-    divider: "#d6d3d1",
+    divider: "#e4dfd4",
   },
   shape: {
-    borderRadius: 14,
+    borderRadius: 12,
   },
   typography: {
     fontFamily: bodyFont,
@@ -93,12 +95,63 @@ const appTheme = createTheme({
     },
   },
   components: {
+    MuiPaper: {
+      defaultProps: {
+        elevation: 0,
+      },
+      styleOverrides: {
+        root: {
+          boxShadow: "none !important",
+          backgroundImage: "none",
+        },
+      },
+    },
     MuiCard: {
       styleOverrides: {
         root: {
-          borderRadius: 18,
-          boxShadow: "0 10px 30px rgba(167, 139, 250, 0.14)",
-          borderColor: "#e7e5e4",
+          borderRadius: 12,
+          boxShadow: "none !important",
+          border: "1px solid #e7e2d8",
+        },
+      },
+    },
+    MuiDrawer: {
+      styleOverrides: {
+        paper: {
+          boxShadow: "none !important",
+          backgroundImage: "none",
+        },
+      },
+    },
+    MuiAppBar: {
+      styleOverrides: {
+        root: {
+          boxShadow: "none !important",
+          backgroundImage: "none",
+        },
+      },
+    },
+    MuiDialog: {
+      styleOverrides: {
+        paper: {
+          boxShadow: "none !important",
+          border: "1px solid #e4dfd4",
+        },
+      },
+    },
+    MuiMenu: {
+      styleOverrides: {
+        paper: {
+          boxShadow: "none !important",
+          border: "1px solid #e4dfd4",
+        },
+      },
+    },
+    MuiPopover: {
+      styleOverrides: {
+        paper: {
+          boxShadow: "none !important",
+          border: "1px solid #e4dfd4",
         },
       },
     },
@@ -106,29 +159,29 @@ const appTheme = createTheme({
       styleOverrides: {
         root: {
           textTransform: "none",
-          borderRadius: 14,
+          borderRadius: 10,
           fontWeight: 600,
           letterSpacing: "0.01em",
-          boxShadow: "none",
+          boxShadow: "none !important",
         },
         containedPrimary: {
-          backgroundColor: "#c4b5fd",
-          color: "#3f3a54",
+          backgroundColor: "#c8a24c",
+          color: "#ffffff",
           "&:hover": {
-            backgroundColor: "#b8a4fb",
-            boxShadow: "0 8px 18px rgba(196, 181, 253, 0.34)",
+            backgroundColor: "#b89240",
+            boxShadow: "none !important",
           },
         },
         containedSecondary: {
-          backgroundColor: "#bae6fd",
-          color: "#27546b",
+          backgroundColor: "#ece6d8",
+          color: "#2f2b24",
           "&:hover": {
-            backgroundColor: "#a7dcfa",
-            boxShadow: "0 8px 18px rgba(186, 230, 253, 0.34)",
+            backgroundColor: "#e3dbc9",
+            boxShadow: "none !important",
           },
         },
         outlined: {
-          borderColor: "#d6d3d1",
+          borderColor: "#d6d0c3",
         },
       },
     },
@@ -137,25 +190,25 @@ const appTheme = createTheme({
         root: {
           borderRadius: 999,
           fontWeight: 500,
-          borderColor: "#e7e5e4",
-          backgroundColor: "#fafaf9",
+          borderColor: "#e4dfd4",
+          backgroundColor: "#f7f4ee",
         },
         colorSecondary: {
-          backgroundColor: "#ddd6fe",
-          color: "#4c3f73",
+          backgroundColor: "#f1e7cf",
+          color: "#6a5324",
         },
       },
     },
     MuiOutlinedInput: {
       styleOverrides: {
         root: {
-          borderRadius: 14,
+          borderRadius: 10,
           backgroundColor: "#ffffff",
           "&:hover .MuiOutlinedInput-notchedOutline": {
-            borderColor: "#c4b5fd",
+            borderColor: "#c8a24c",
           },
           "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-            borderColor: "#c4b5fd",
+            borderColor: "#c8a24c",
           },
         },
       },
@@ -163,12 +216,12 @@ const appTheme = createTheme({
     MuiToggleButton: {
       styleOverrides: {
         root: {
-          borderColor: "#e7e5e4",
+          borderColor: "#e4dfd4",
           "&.Mui-selected": {
-            backgroundColor: "#ede9fe",
-            color: "#5b49a5",
+            backgroundColor: "#f1e7cf",
+            color: "#6a5324",
             "&:hover": {
-              backgroundColor: "#ddd6fe",
+              backgroundColor: "#eadcb8",
             },
           },
         },
@@ -177,9 +230,11 @@ const appTheme = createTheme({
     MuiCssBaseline: {
       styleOverrides: {
         body: {
-          background:
-            "radial-gradient(circle at 12% 8%, rgba(196,181,253,0.22), transparent 34%), radial-gradient(circle at 88% 10%, rgba(186,230,253,0.26), transparent 32%), radial-gradient(circle at 50% 100%, rgba(187,247,208,0.22), transparent 34%), #fafaf9",
-          color: "#44403c",
+          background: "#f6f4ef",
+          color: "#0f172a",
+        },
+        "*, *::before, *::after": {
+          boxShadow: "none !important",
         },
       },
     },

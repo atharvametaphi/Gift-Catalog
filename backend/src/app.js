@@ -10,6 +10,8 @@ import meRoutes from "./routes/meRoutes.js";
 import categoryRoutes from "./routes/categoryRoutes.js";
 import subCategoryRoutes from "./routes/subCategoryRoutes.js";
 import itemRoutes from "./routes/itemRoutes.js";
+import catalogRoutes from "./routes/catalogRoutes.js";
+import userRoutes from "./routes/userRoutes.js";
 import env from "./config/env.js";
 import { errorHandler, notFound } from "./middleware/errorMiddleware.js";
 
@@ -77,7 +79,10 @@ app.use(`${API_PREFIX}/auth`, authRoutes);
 app.use(`${API_PREFIX}/me`, meRoutes);
 app.use(`${API_PREFIX}/categories`, categoryRoutes);
 app.use(`${API_PREFIX}/subcategories`, subCategoryRoutes);
+app.use(`${API_PREFIX}/products`, itemRoutes);
 app.use(`${API_PREFIX}/items`, itemRoutes);
+app.use(`${API_PREFIX}/catalogs`, catalogRoutes);
+app.use(`${API_PREFIX}/users`, userRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

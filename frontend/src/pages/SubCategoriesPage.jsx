@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Box,
@@ -9,6 +9,7 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Chip,
   FormControl,
   IconButton,
   InputLabel,
@@ -38,9 +39,10 @@ const MoreVertRoundedIcon = resolveIconComponent(MoreVertRoundedIconRaw);
 const isDatabaseId = (value) => /^[a-fA-F0-9]{24}$/.test(value || "");
 
 const SubCategoriesPage = () => {
-  const { subCategories, dbCategories, addSubCategory, updateSubCategory, deleteSubCategory } = useCatalogStore((state) => ({
+  const { subCategories, dbCategories, loadCatalogData, addSubCategory, updateSubCategory, deleteSubCategory } = useCatalogStore((state) => ({
     subCategories: state.subCategories,
     dbCategories: state.dbCategories,
+    loadCatalogData: state.loadCatalogData,
     addSubCategory: state.addSubCategory,
     updateSubCategory: state.updateSubCategory,
     deleteSubCategory: state.deleteSubCategory,
@@ -55,6 +57,8 @@ const SubCategoriesPage = () => {
     defaultValues: {
       name: "",
       categoryId: "",
+      description: "",
+      status: "active",
     },
   });
 
@@ -67,6 +71,10 @@ const SubCategoriesPage = () => {
     [subCategories],
   );
 
+  useEffect(() => {
+    loadCatalogData();
+  }, [loadCatalogData]);
+
   const closeDialog = () => {
     if (submitting) {
       return;
@@ -75,13 +83,13 @@ const SubCategoriesPage = () => {
     setOpenDialog(false);
     setDialogMode("add");
     setActionRow(null);
-    reset({ name: "", categoryId: "" });
+    reset({ name: "", categoryId: "", description: "", status: "active" });
   };
 
   const openAddDialog = () => {
     setDialogMode("add");
     setActionRow(null);
-    reset({ name: "", categoryId: "" });
+    reset({ name: "", categoryId: "", description: "", status: "active" });
     setOpenDialog(true);
   };
 
@@ -94,6 +102,8 @@ const SubCategoriesPage = () => {
     reset({
       name: actionRow.name,
       categoryId: actionRow.categoryId || "",
+      description: actionRow.description || "",
+      status: actionRow.status || "active",
     });
     setOpenDialog(true);
     setActionAnchorEl(null);
@@ -139,7 +149,9 @@ const SubCategoriesPage = () => {
         await updateSubCategory({
           id: actionRow.id,
           name: values.name,
-          categoryId: values.categoryId,
+          categoryId: values.categoryId || null,
+          description: values.description,
+          status: values.status,
         });
         setSnackbar({
           open: true,
@@ -149,7 +161,9 @@ const SubCategoriesPage = () => {
       } else {
         await addSubCategory({
           name: values.name,
-          categoryId: values.categoryId,
+          categoryId: values.categoryId || null,
+          description: values.description,
+          status: values.status,
         });
         setSnackbar({
           open: true,
@@ -161,7 +175,7 @@ const SubCategoriesPage = () => {
       setOpenDialog(false);
       setDialogMode("add");
       setActionRow(null);
-      reset({ name: "", categoryId: "" });
+      reset({ name: "", categoryId: "", description: "", status: "active" });
     } catch (error) {
       setSnackbar({
         open: true,
@@ -190,11 +204,6 @@ const SubCategoriesPage = () => {
               Add Sub-Category
             </Button>
           </Stack>
-          {/* {dbCategories.length === 0 ? (
-            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
-              Create a category first, then add sub-categories.
-            </Typography>
-          ) : null} */}
         </CardContent>
       </Card>
 
@@ -220,16 +229,50 @@ const SubCategoriesPage = () => {
             <Controller
               name="categoryId"
               control={control}
-              rules={{ required: "Category selection is required" }}
               render={({ field, fieldState }) => (
-                <FormControl size="small" fullWidth error={Boolean(fieldState.error)}>
+                <FormControl size="small" fullWidth error={Boolean(fieldState.error)} sx={{ mt: 1.2 }}>
                   <InputLabel>Category Selection</InputLabel>
                   <Select {...field} label="Category Selection">
+                    <MenuItem value="">No Category</MenuItem>
                     {dbCategories.map((category) => (
                       <MenuItem key={category.id} value={category.id}>
                         {category.name}
                       </MenuItem>
                     ))}
+                  </Select>
+                  {fieldState.error ? (
+                    <Typography variant="caption" color="error" sx={{ pl: 1.7, pt: 0.5 }}>
+                      {fieldState.error.message}
+                    </Typography>
+                  ) : null}
+                </FormControl>
+              )}
+            />
+            <Controller
+              name="description"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  label="Description (Optional)"
+                  size="small"
+                  fullWidth
+                  multiline
+                  minRows={2}
+                  sx={{ mt: 1.2 }}
+                />
+              )}
+            />
+            <Controller
+              name="status"
+              control={control}
+              rules={{ required: "Status is required" }}
+              render={({ field, fieldState }) => (
+                <FormControl size="small" fullWidth error={Boolean(fieldState.error)} sx={{ mt: 1.2 }}>
+                  <InputLabel>Status</InputLabel>
+                  <Select {...field} label="Status">
+                    <MenuItem value="active">Active</MenuItem>
+                    <MenuItem value="inactive">Inactive</MenuItem>
                   </Select>
                   {fieldState.error ? (
                     <Typography variant="caption" color="error" sx={{ pl: 1.7, pt: 0.5 }}>
@@ -261,10 +304,6 @@ const SubCategoriesPage = () => {
                 px: 1.25,
                 py: 0.9,
               },
-              "& .MuiTableCell-root + .MuiTableCell-root": {
-                borderLeft: "1px solid",
-                borderLeftColor: "divider",
-              },
               "& .MuiTableHead-root .MuiTableCell-root": {
                 borderBottomWidth: 1.5,
                 borderBottomStyle: "solid",
@@ -274,6 +313,8 @@ const SubCategoriesPage = () => {
             <TableHead>
               <TableRow>
                 <TableCell sx={{ fontWeight: 700 }}>Sub-Category Name</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Description</TableCell>
+                <TableCell sx={{ fontWeight: 700, width: 120 }}>Status</TableCell>
                 <TableCell sx={{ fontWeight: 700, width: 56 }}>Action</TableCell>
               </TableRow>
             </TableHead>
@@ -281,6 +322,26 @@ const SubCategoriesPage = () => {
               {subCategoryRows.map((subCategory) => (
                 <TableRow key={subCategory.id}>
                   <TableCell>{subCategory.name}</TableCell>
+                  <TableCell sx={{ color: "text.secondary" }}>
+                    {subCategory.description?.trim() || "-"}
+                  </TableCell>
+                  <TableCell>
+                    <Chip
+                      size="small"
+                      label={subCategory.status === "inactive" ? "Inactive" : "Active"}
+                      color={subCategory.status === "inactive" ? "default" : "success"}
+                      variant={subCategory.status === "inactive" ? "outlined" : "filled"}
+                      sx={
+                        subCategory.status === "inactive"
+                          ? undefined
+                          : {
+                              bgcolor: "#dcfce7",
+                              color: "#14532d",
+                              borderColor: "#86efac",
+                            }
+                      }
+                    />
+                  </TableCell>
                   <TableCell>
                     <Tooltip title={subCategory.dbRecord ? "Actions" : "Dummy data row"}>
                       <span>

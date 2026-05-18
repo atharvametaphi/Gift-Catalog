@@ -124,7 +124,7 @@ const LoginPage = () => {
           alignItems: "center",
           justifyContent: "center",
           p: 8,
-          background: "linear-gradient(160deg, #ddd6fe 0%, #bae6fd 52%, #bbf7d0 100%)",
+          background: "linear-gradient(160deg, #f6f3ec 0%, #ece4d3 52%, #ddcfb0 100%)",
         }}
       >
         <Box sx={{ maxWidth: 460 }}>

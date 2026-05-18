@@ -1,11 +1,11 @@
 import mongoose from "mongoose";
 
-const productSchema = new mongoose.Schema(
+const catalogSchema = new mongoose.Schema(
   {
     name: {
       type: String,
       trim: true,
-      required: true,
+      default: "",
     },
     description: {
       type: String,
@@ -25,7 +25,7 @@ const productSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
-    images: {
+    itemIds: {
       type: [String],
       default: [],
     },
@@ -35,6 +35,6 @@ const productSchema = new mongoose.Schema(
   },
 );
 
-const Product = mongoose.model("Product", productSchema, "products");
+const Catalog = mongoose.model("Catalog", catalogSchema, "catalogs");
 
-export default Product;
+export default Catalog;

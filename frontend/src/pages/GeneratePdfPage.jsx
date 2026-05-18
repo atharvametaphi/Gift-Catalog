@@ -459,9 +459,6 @@ const GeneratePdfPage = () => {
                 </Typography>
               </Stack>
 
-              <Typography variant="body2" sx={{ mb: 1.2 }}>
-                Selected products: {selectedCatalogItems.length}
-              </Typography>
               <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.8 }}>
                 PDF Layout
               </Typography>

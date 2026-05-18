@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  AppBar,
   Avatar,
   Box,
   Collapse,
@@ -11,8 +10,9 @@ import {
   ListItemButton,
   ListItemIcon,
   ListItemText,
+  Menu,
+  MenuItem,
   Stack,
-  Toolbar,
   Tooltip,
   Typography,
   useMediaQuery,
@@ -20,13 +20,10 @@ import {
 import MenuRoundedIconRaw from "@mui/icons-material/MenuRounded";
 import KeyboardArrowDownRoundedIconRaw from "@mui/icons-material/KeyboardArrowDownRounded";
 import KeyboardArrowRightRoundedIconRaw from "@mui/icons-material/KeyboardArrowRightRounded";
-import KeyboardDoubleArrowLeftRoundedIconRaw from "@mui/icons-material/KeyboardDoubleArrowLeftRounded";
-import KeyboardDoubleArrowRightRoundedIconRaw from "@mui/icons-material/KeyboardDoubleArrowRightRounded";
 import LogoutOutlinedIconRaw from "@mui/icons-material/LogoutOutlined";
 import { alpha, useTheme } from "@mui/material/styles";
 import { AnimatePresence, motion } from "framer-motion";
 import { Link as RouterLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import BreadcrumbTrail from "../components/BreadcrumbTrail";
 import { sidebarNavigation } from "../constants/navigation";
 import { useAuthStore } from "../store/authStore";
 import { useCatalogStore } from "../store/catalogStore";
@@ -35,17 +32,23 @@ import resolveIconComponent from "../utils/resolveIconComponent";
 const MenuRoundedIcon = resolveIconComponent(MenuRoundedIconRaw);
 const KeyboardArrowDownRoundedIcon = resolveIconComponent(KeyboardArrowDownRoundedIconRaw);
 const KeyboardArrowRightRoundedIcon = resolveIconComponent(KeyboardArrowRightRoundedIconRaw);
-const KeyboardDoubleArrowLeftRoundedIcon = resolveIconComponent(KeyboardDoubleArrowLeftRoundedIconRaw);
-const KeyboardDoubleArrowRightRoundedIcon = resolveIconComponent(KeyboardDoubleArrowRightRoundedIconRaw);
 const LogoutOutlinedIcon = resolveIconComponent(LogoutOutlinedIconRaw);
 const MotionBox = motion(Box);
 
 const expandedDrawerWidth = 284;
-const collapsedDrawerWidth = 96;
 const isPathMatch = (pathname, targetPath) =>
   Boolean(targetPath) && (pathname === targetPath || pathname.startsWith(`${targetPath}/`));
 const isGroupChildMatch = (pathname, item) =>
   Array.isArray(item.children) && item.children.some((child) => isPathMatch(pathname, child.path));
+const hasRoleAccess = (item, currentRole) => {
+  const allowedRoles = Array.isArray(item?.allowedRoles) ? item.allowedRoles : [];
+
+  if (allowedRoles.length === 0) {
+    return true;
+  }
+
+  return allowedRoles.map((role) => String(role || "").trim().toLowerCase()).includes(currentRole);
+};
 
 const AppLayout = () => {
   const theme = useTheme();
@@ -53,7 +56,7 @@ const AppLayout = () => {
   const navigate = useNavigate();
   const isMobile = useMediaQuery(theme.breakpoints.down("lg"));
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [desktopCollapsed, setDesktopCollapsed] = useState(false);
+  const [profileAnchorEl, setProfileAnchorEl] = useState(null);
   const [openGroups, setOpenGroups] = useState(() => {
     const nextState = {};
 
@@ -71,13 +74,42 @@ const AppLayout = () => {
   const user = useAuthStore((state) => state.user);
   const token = useAuthStore((state) => state.token);
   const loadCatalogData = useCatalogStore((state) => state.loadCatalogData);
+  const currentRole = String(user?.role || "viewer").trim().toLowerCase();
+  const navigationItems = useMemo(
+    () =>
+      sidebarNavigation
+        .map((item) => {
+          if (!hasRoleAccess(item, currentRole)) {
+            return null;
+          }
+
+          if (item.type !== "group") {
+            return item;
+          }
+
+          const children = Array.isArray(item.children)
+            ? item.children.filter((child) => hasRoleAccess(child, currentRole))
+            : [];
+
+          if (children.length === 0 && !item.path) {
+            return null;
+          }
+
+          return {
+            ...item,
+            children,
+          };
+        })
+        .filter(Boolean),
+    [currentRole],
+  );
 
   useEffect(() => {
     setOpenGroups((previous) => {
       let hasChanges = false;
       const nextState = { ...previous };
 
-      sidebarNavigation.forEach((item) => {
+      navigationItems.forEach((item) => {
         if (item.type !== "group") {
           return;
         }
@@ -98,7 +130,7 @@ const AppLayout = () => {
 
       return hasChanges ? nextState : previous;
     });
-  }, [location.pathname]);
+  }, [location.pathname, navigationItems]);
 
   useEffect(() => {
     if (!token) {
@@ -108,34 +140,20 @@ const AppLayout = () => {
     loadCatalogData();
   }, [token, loadCatalogData]);
 
-  const pageTitle = useMemo(() => {
-    for (const item of sidebarNavigation) {
-      if (item.type === "group") {
-        const child = item.children.find((childNode) => isPathMatch(location.pathname, childNode.path));
-        if (child) {
-          return child.label;
-        }
-
-        if (item.path && isPathMatch(location.pathname, item.path)) {
-          return item.label;
-        }
-
-        continue;
-      }
-
-      if (isPathMatch(location.pathname, item.path)) {
-        return item.label;
-      }
-    }
-
-    return "Gift Catalog";
-  }, [location.pathname]);
-
-  const drawerWidth = isMobile ? expandedDrawerWidth : desktopCollapsed ? collapsedDrawerWidth : expandedDrawerWidth;
+  const drawerWidth = expandedDrawerWidth;
+  const profileMenuOpen = Boolean(profileAnchorEl);
 
   const handleLogout = () => {
     logout();
     navigate("/login", { replace: true });
+  };
+
+  const handleProfileMenuOpen = (event) => {
+    setProfileAnchorEl(event.currentTarget);
+  };
+
+  const handleProfileMenuClose = () => {
+    setProfileAnchorEl(null);
   };
 
   const navBaseStyles = {
@@ -152,7 +170,7 @@ const AppLayout = () => {
     "&.Mui-selected": {
       bgcolor: alpha(theme.palette.primary.main, 0.28),
       color: "text.primary",
-      boxShadow: `0 10px 22px ${alpha(theme.palette.primary.main, 0.28)}`,
+      boxShadow: "none",
     },
   };
 
@@ -162,7 +180,7 @@ const AppLayout = () => {
       item.type === "group"
         ? (item.path ? isPathMatch(location.pathname, item.path) : false) || isGroupChildMatch(location.pathname, item)
         : isPathMatch(location.pathname, item.path);
-    const showTooltip = desktopCollapsed && !isMobile;
+    const showTooltip = false;
 
     if (item.type === "group") {
       const isOpen = Boolean(openGroups[item.key]);
@@ -170,7 +188,8 @@ const AppLayout = () => {
         <ListItemButton
           onClick={() => {
             setOpenGroups((previous) => ({ ...previous, [item.key]: !previous[item.key] }));
-            if (item.path) {
+            const hasChildren = Array.isArray(item.children) && item.children.length > 0;
+            if (item.path && !hasChildren) {
               navigate(item.path);
               if (isMobile) {
                 setMobileOpen(false);
@@ -183,24 +202,22 @@ const AppLayout = () => {
           <ListItemIcon sx={{ minWidth: 36, color: primaryActive ? "text.primary" : "inherit" }}>
             <Icon fontSize="small" />
           </ListItemIcon>
-          {(!desktopCollapsed || isMobile) && (
-            <Box sx={{ width: "100%" }}>
-              <Stack direction="row" justifyContent="space-between" alignItems="center">
-                <ListItemText
-                  primary={item.label}
-                  primaryTypographyProps={{ fontSize: 14, fontWeight: primaryActive ? 700 : 600 }}
-                />
-                {isOpen ? <KeyboardArrowDownRoundedIcon fontSize="small" /> : <KeyboardArrowRightRoundedIcon fontSize="small" />}
-              </Stack>
-            </Box>
-          )}
+          <Box sx={{ width: "100%" }}>
+            <Stack direction="row" justifyContent="space-between" alignItems="center">
+              <ListItemText
+                primary={item.label}
+                primaryTypographyProps={{ fontSize: 14, fontWeight: primaryActive ? 700 : 600 }}
+              />
+              {isOpen ? <KeyboardArrowDownRoundedIcon fontSize="small" /> : <KeyboardArrowRightRoundedIcon fontSize="small" />}
+            </Stack>
+          </Box>
         </ListItemButton>
       );
 
       return (
         <Box key={item.key}>
           {showTooltip ? <Tooltip title={item.label} placement="right">{button}</Tooltip> : button}
-          <Collapse in={isOpen && (!desktopCollapsed || isMobile)} timeout={200} unmountOnExit>
+          <Collapse in={isOpen} timeout={200} unmountOnExit>
             <List disablePadding sx={{ pl: 2.1, py: 0.35 }}>
               {item.children.map((child) => {
                 const ChildIcon = child.icon;
@@ -256,12 +273,10 @@ const AppLayout = () => {
         <ListItemIcon sx={{ minWidth: 36, color: primaryActive ? "text.primary" : "inherit" }}>
           <Icon fontSize="small" />
         </ListItemIcon>
-        {(!desktopCollapsed || isMobile) && (
-          <ListItemText
-            primary={item.label}
-            primaryTypographyProps={{ fontSize: 14, fontWeight: primaryActive ? 700 : 600 }}
-          />
-        )}
+        <ListItemText
+          primary={item.label}
+          primaryTypographyProps={{ fontSize: 14, fontWeight: primaryActive ? 700 : 600 }}
+        />
       </ListItemButton>
     );
 
@@ -279,51 +294,82 @@ const AppLayout = () => {
   };
 
   const drawerContent = (
-    <Box sx={{ height: "100%", px: isMobile ? 0 : 1.2, py: isMobile ? 0 : 1.5 }}>
+    <Box sx={{ height: "100%", px: 0, py: 0 }}>
       <Box
         sx={{
           height: "100%",
           display: "flex",
           flexDirection: "column",
-          bgcolor: alpha(theme.palette.background.paper, 0.92),
-          border: "1px solid",
+          bgcolor: theme.palette.background.paper,
+          borderRight: "1px solid",
           borderColor: "divider",
-          borderRadius: isMobile ? 0 : "16px",
-          backdropFilter: "blur(12px)",
-          boxShadow: isMobile ? "none" : `0 24px 52px ${alpha(theme.palette.primary.main, 0.2)}`,
+          borderRadius: 0,
+          backdropFilter: "none",
+          boxShadow: "none",
         }}
       >
         <Stack
           direction="row"
           alignItems="center"
-          justifyContent={desktopCollapsed && !isMobile ? "center" : "space-between"}
+          justifyContent="space-between"
           sx={{ px: 2.3, py: 2.2 }}
         >
-          {(!desktopCollapsed || isMobile) && (
-            <Box>
-              <Typography variant="h6" sx={{ lineHeight: 1, mb: 0.4 }}>
-                Gift Catalog
-              </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ letterSpacing: "0.16em", textTransform: "uppercase" }}>
-                Curated Collections
-              </Typography>
-            </Box>
-          )}
+          <Box>
+            <Typography variant="h6" sx={{ lineHeight: 1, mb: 0.4 }}>
+              Gift Catalog
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ letterSpacing: "0.16em", textTransform: "uppercase" }}>
+              Curated Collections
+            </Typography>
+          </Box>
         </Stack>
         <Divider />
-        <List sx={{ px: 1.3, py: 1.1, flex: 1 }}>{sidebarNavigation.map((item) => renderPrimaryItem(item))}</List>
+        <List sx={{ px: 1.3, py: 1.1, flex: 1 }}>{navigationItems.map((item) => renderPrimaryItem(item))}</List>
         <Divider />
         <Box sx={{ p: 1.25 }}>
-          <Tooltip title={desktopCollapsed && !isMobile ? "Logout" : ""} placement="right">
-            <ListItemButton onClick={handleLogout} sx={{ ...navBaseStyles, mb: 0 }}>
+          <Tooltip title="" placement="right">
+            <ListItemButton sx={{ ...navBaseStyles, mb: 0 }} onClick={handleProfileMenuOpen}>
               <ListItemIcon sx={{ minWidth: 36 }}>
-                <LogoutOutlinedIcon fontSize="small" />
+                <Avatar sx={{ width: 30, height: 30, bgcolor: "primary.main", color: "primary.contrastText", fontSize: 13 }}>
+                  {(user?.name || "A").charAt(0).toUpperCase()}
+                </Avatar>
               </ListItemIcon>
-              {(!desktopCollapsed || isMobile) && (
-                <ListItemText primary="Logout" primaryTypographyProps={{ fontSize: 14, fontWeight: 600 }} />
-              )}
+              <ListItemText
+                primary={user?.name || "Admin"}
+                secondary={user?.email || "admin@giftcatalog.com"}
+                primaryTypographyProps={{ fontSize: 13, fontWeight: 600 }}
+                secondaryTypographyProps={{ fontSize: 11 }}
+              />
             </ListItemButton>
           </Tooltip>
+          <Menu
+            anchorEl={profileAnchorEl}
+            open={profileMenuOpen}
+            onClose={handleProfileMenuClose}
+            anchorOrigin={{ vertical: "top", horizontal: "left" }}
+            transformOrigin={{ vertical: "bottom", horizontal: "left" }}
+            keepMounted
+            PaperProps={{
+              elevation: 0,
+              sx: {
+                border: "1px solid",
+                borderColor: "divider",
+                minWidth: 132,
+              },
+            }}
+          >
+            <MenuItem
+              onClick={() => {
+                handleProfileMenuClose();
+                handleLogout();
+              }}
+            >
+              <ListItemIcon sx={{ minWidth: 32 }}>
+                <LogoutOutlinedIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText primary="Logout" primaryTypographyProps={{ fontSize: 14, fontWeight: 600 }} />
+            </MenuItem>
+          </Menu>
         </Box>
       </Box>
     </Box>
@@ -331,73 +377,22 @@ const AppLayout = () => {
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "background.default" }}>
-      <AppBar
-        position="fixed"
-        color="transparent"
-        elevation={0}
-        sx={{
-          width: { lg: `calc(100% - ${drawerWidth}px)` },
-          ml: { lg: `${drawerWidth}px` },
-          transition: "all 0.24s ease",
-          bgcolor: "transparent",
-          boxShadow: "none",
-          pt: { lg: 1.4 },
-        }}
-      >
-        <Toolbar
-          sx={{
-            minHeight: "70px !important",
-            justifyContent: "space-between",
-            border: "1px solid",
-            borderColor: "divider",
-            borderRadius: 4,
-            mx: { xs: 1.2, md: 2.1 },
-            px: { xs: 1.2, sm: 1.8 },
-            bgcolor: alpha(theme.palette.background.paper, 0.88),
-            backdropFilter: "blur(12px)",
-            boxShadow: `0 12px 30px ${alpha(theme.palette.primary.main, 0.2)}`,
-          }}
-        >
-          <Stack direction="row" spacing={1.1} alignItems="center">
-            {isMobile ? (
-              <IconButton edge="start" onClick={() => setMobileOpen(true)}>
-                <MenuRoundedIcon />
-              </IconButton>
-            ) : (
-              <IconButton edge="start" onClick={() => setDesktopCollapsed((prev) => !prev)}>
-                {desktopCollapsed ? <KeyboardDoubleArrowRightRoundedIcon /> : <KeyboardDoubleArrowLeftRoundedIcon />}
-              </IconButton>
-            )}
-            <Typography variant="h5" sx={{ lineHeight: 1 }}>
-              {pageTitle}
-            </Typography>
-          </Stack>
-
-          <Stack direction="row" spacing={1.25} alignItems="center">
-            <Avatar sx={{ width: 34, height: 34, bgcolor: "primary.main", color: "primary.contrastText", fontSize: 14 }}>
-              {(user?.name || "A").charAt(0).toUpperCase()}
-            </Avatar>
-            <Typography variant="body2" sx={{ display: { xs: "none", sm: "block" }, fontWeight: 600 }}>
-              {user?.name || "Admin"}
-            </Typography>
-          </Stack>
-        </Toolbar>
-      </AppBar>
-
       <Box component="nav" sx={{ width: { lg: drawerWidth }, flexShrink: { lg: 0 } }}>
         <Drawer
           variant={isMobile ? "temporary" : "permanent"}
           open={isMobile ? mobileOpen : true}
           onClose={() => setMobileOpen(false)}
+          PaperProps={{ elevation: 0 }}
           ModalProps={{ keepMounted: true }}
           sx={{
             "& .MuiDrawer-paper": {
               boxSizing: "border-box",
               width: drawerWidth,
               borderRight: 0,
-              bgcolor: "transparent",
+              bgcolor: theme.palette.background.paper,
+              boxShadow: "none",
               transition: "width 0.24s ease",
-              overflow: "visible",
+              overflow: "hidden",
             },
           }}
         >
@@ -405,8 +400,25 @@ const AppLayout = () => {
         </Drawer>
       </Box>
 
-      <Box component="main" sx={{ flexGrow: 1, p: { xs: 2, md: 3.3 }, mt: { xs: "72px", lg: "102px" }, minWidth: 0 }}>
-        <BreadcrumbTrail />
+      {isMobile ? (
+        <IconButton
+          onClick={() => setMobileOpen(true)}
+          sx={{
+            position: "fixed",
+            top: 10,
+            left: 10,
+            zIndex: theme.zIndex.drawer + 2,
+            border: "1px solid",
+            borderColor: "divider",
+            bgcolor: theme.palette.background.paper,
+            backdropFilter: "none",
+          }}
+        >
+          <MenuRoundedIcon />
+        </IconButton>
+      ) : null}
+
+      <Box component="main" sx={{ flexGrow: 1, p: { xs: 2, md: 3.3 }, mt: 0, minWidth: 0 }}>
         <AnimatePresence mode="wait">
           <MotionBox
             key={location.pathname}

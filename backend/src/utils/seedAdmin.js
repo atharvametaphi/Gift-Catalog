@@ -24,6 +24,7 @@ const run = async () => {
     email: email.toLowerCase(),
     password: hashed,
     role: "admin",
+    status: "active",
   });
 
   console.log(`Seeded admin user: ${email}`);
@@ -35,4 +36,3 @@ run().catch(async (error) => {
   await mongoose.disconnect();
   process.exit(1);
 });
-

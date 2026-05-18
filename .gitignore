@@ -5,6 +5,11 @@ backend/node_modules/
 # Environment files
 # frontend/.env
 # backend/.env
+# *.env
+# *.env.local
+# *.env.development.local
+# *.env.test.local
+# *.env.production.local
 
 
 # Build outputs
@@ -26,6 +31,7 @@ pnpm-debug.log*
 frontend/.cache/
 backend/.cache/
 frontend/.vite/
+backend/.vite/
 *.tmp
 *.temp
 *.swp
@@ -35,6 +41,14 @@ frontend/.vite/
 backend/uploads/*
 !backend/uploads/.gitkeep
 
+# Local dummy-data seed/upload scripts
+backend/src/utils/seedCatalogData.js
+backend/src/utils/seedMasterTestData.js
+
 # OS artifacts
 .DS_Store
 Thumbs.db
+
+# Editor/IDE artifacts
+.vscode/
+.idea/

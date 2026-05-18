@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { catalogItems as seedItems, categories as seedCategories, subCategories as seedSubCategories } from "../constants/catalogData";
 import { catalogService } from "../services/catalogService";
 
 export const layoutModes = ["grid-3", "grid-4", "list"];
@@ -10,53 +9,45 @@ const initialFilters = {
   subCategoryId: "all",
 };
 
-const cloneCatalogItems = (items) =>
-  items.map((item) => ({
-    ...item,
-    images: [...item.images],
-  }));
-
-const cloneRecords = (records) => records.map((record) => ({ ...record }));
-
-const seedCatalog = {
-  categories: cloneRecords(seedCategories),
-  subCategories: cloneRecords(seedSubCategories),
-  items: cloneCatalogItems(seedItems),
-};
-
 const sortByCreatedAtDesc = (a, b) => {
   const aTime = new Date(a.createdAt || 0).getTime();
   const bTime = new Date(b.createdAt || 0).getTime();
   return bTime - aTime;
 };
 
-const mergeById = (seedRecords, dbRecords) => {
-  const mergedMap = new Map();
+const normalizeArray = (records) =>
+  (Array.isArray(records) ? records : [])
+    .filter((record) => record && typeof record === "object")
+    .sort(sortByCreatedAtDesc);
 
-  for (const record of [...dbRecords, ...seedRecords]) {
-    if (!record?.id) {
-      continue;
-    }
+const buildVisibleCatalogItems = (dbItems, dbCatalogs) => {
+  const catalogItemIds = new Set(
+    dbCatalogs.flatMap((catalog) =>
+      Array.isArray(catalog?.itemIds) ? catalog.itemIds : [],
+    ),
+  );
 
-    if (!mergedMap.has(record.id)) {
-      mergedMap.set(record.id, record);
-    }
+  // Backward-compatible fallback when no catalogs exist yet.
+  if (catalogItemIds.size === 0) {
+    return dbItems;
   }
 
-  return Array.from(mergedMap.values()).sort(sortByCreatedAtDesc);
+  return dbItems.filter((item) => catalogItemIds.has(item.id));
 };
 
-const withMergedCatalog = (dbCategories, dbSubCategories, dbItems) => ({
+const buildCatalogState = (dbCategories, dbSubCategories, dbItems, dbCatalogs) => ({
   dbCategories,
   dbSubCategories,
   dbItems,
-  categories: mergeById(seedCatalog.categories, dbCategories),
-  subCategories: mergeById(seedCatalog.subCategories, dbSubCategories),
-  catalogItems: mergeById(seedCatalog.items, dbItems),
+  dbCatalogs,
+  categories: dbCategories,
+  subCategories: dbSubCategories,
+  catalogItems: buildVisibleCatalogItems(dbItems, dbCatalogs),
+  createdCatalogs: dbCatalogs,
 });
 
 export const useCatalogStore = create((set, get) => ({
-  ...withMergedCatalog([], [], []),
+  ...buildCatalogState([], [], [], []),
   catalogLoading: false,
   catalogLoaded: false,
   catalogError: "",
@@ -76,22 +67,43 @@ export const useCatalogStore = create((set, get) => ({
     }));
 
     try {
-      const [categoriesResponse, subCategoriesResponse, itemsResponse] = await Promise.all([
+      const [categoriesResult, subCategoriesResult, productsResult, catalogsResult] = await Promise.allSettled([
         catalogService.getCategories(),
         catalogService.getSubCategories(),
-        catalogService.getItems(),
+        catalogService.getProducts(),
+        catalogService.getCatalogs(),
       ]);
 
-      const dbCategories = Array.isArray(categoriesResponse.categories) ? categoriesResponse.categories : [];
-      const dbSubCategories = Array.isArray(subCategoriesResponse.subCategories) ? subCategoriesResponse.subCategories : [];
-      const dbItems = Array.isArray(itemsResponse.items) ? itemsResponse.items : [];
+      let categoriesError = null;
+      let subCategoriesError = null;
+      let productsError = null;
+      let catalogsError = null;
+
+      const dbCategories =
+        categoriesResult.status === "fulfilled"
+          ? normalizeArray(categoriesResult.value.categories)
+          : ((categoriesError = categoriesResult.reason), []);
+      const dbSubCategories =
+        subCategoriesResult.status === "fulfilled"
+          ? normalizeArray(subCategoriesResult.value.subCategories)
+          : ((subCategoriesError = subCategoriesResult.reason), []);
+      const dbItems =
+        productsResult.status === "fulfilled"
+          ? normalizeArray(productsResult.value.products || productsResult.value.items)
+          : ((productsError = productsResult.reason), []);
+      const dbCatalogs =
+        catalogsResult.status === "fulfilled"
+          ? normalizeArray(catalogsResult.value.catalogs)
+          : ((catalogsError = catalogsResult.reason), []);
+
+      const firstError = categoriesError || subCategoriesError || productsError || catalogsError;
 
       set((state) => ({
         ...state,
-        ...withMergedCatalog(dbCategories, dbSubCategories, dbItems),
+        ...buildCatalogState(dbCategories, dbSubCategories, dbItems, dbCatalogs),
         catalogLoading: false,
         catalogLoaded: true,
-        catalogError: "",
+        catalogError: firstError ? firstError?.response?.data?.message || firstError?.message || "Some data failed to load." : "",
       }));
     } catch (error) {
       set((state) => ({
@@ -160,23 +172,23 @@ export const useCatalogStore = create((set, get) => ({
       selectedItems: {},
     })),
 
-  addItem: async ({ name, images, categoryId, subCategoryId }) => {
-    await catalogService.createItem({ name, images, categoryId, subCategoryId });
+  addItem: async ({ name, description, status, images, categoryId, subCategoryId }) => {
+    await catalogService.createProduct({ name, description, status, images, categoryId, subCategoryId });
     await get().loadCatalogData();
   },
 
-  addSubCategory: async ({ name }) => {
-    await catalogService.createSubCategory({ name });
+  addSubCategory: async ({ name, categoryId, description, status }) => {
+    await catalogService.createSubCategory({ name, categoryId, description, status });
     await get().loadCatalogData();
   },
 
-  addCategory: async ({ name }) => {
-    await catalogService.createCategory({ name });
+  addCategory: async ({ name, description, status }) => {
+    await catalogService.createCategory({ name, description, status });
     await get().loadCatalogData();
   },
 
-  updateCategory: async ({ id, name }) => {
-    await catalogService.updateCategory(id, { name });
+  updateCategory: async ({ id, name, description, status }) => {
+    await catalogService.updateCategory(id, { name, description, status });
     await get().loadCatalogData();
   },
 
@@ -185,8 +197,8 @@ export const useCatalogStore = create((set, get) => ({
     await get().loadCatalogData();
   },
 
-  updateSubCategory: async ({ id, name }) => {
-    await catalogService.updateSubCategory(id, { name });
+  updateSubCategory: async ({ id, name, categoryId, description, status }) => {
+    await catalogService.updateSubCategory(id, { name, categoryId, description, status });
     await get().loadCatalogData();
   },
 
@@ -195,13 +207,35 @@ export const useCatalogStore = create((set, get) => ({
     await get().loadCatalogData();
   },
 
-  updateItem: async ({ id, name, images, description, categoryId, subCategoryId }) => {
-    await catalogService.updateItem(id, { name, images, description, categoryId, subCategoryId });
+  updateItem: async ({ id, name, images, description, status, categoryId, subCategoryId }) => {
+    await catalogService.updateProduct(id, { name, images, description, status, categoryId, subCategoryId });
     await get().loadCatalogData();
   },
 
   deleteItem: async (id) => {
-    await catalogService.deleteItem(id);
+    await catalogService.deleteProduct(id);
+    await get().loadCatalogData();
+  },
+
+  createCatalog: async ({ categoryId, subCategoryId, description = "", status = "active", itemIds = [] }) => {
+    await catalogService.createCatalog({
+      categoryId,
+      subCategoryId,
+      description,
+      status,
+      itemIds,
+    });
+    await get().loadCatalogData();
+  },
+
+  updateCatalog: async ({ id, categoryId, subCategoryId, description = "", status = "active", itemIds = [] }) => {
+    await catalogService.updateCatalog(id, {
+      categoryId,
+      subCategoryId,
+      description,
+      status,
+      itemIds,
+    });
     await get().loadCatalogData();
   },
 }));

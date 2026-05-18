@@ -1,36 +1,41 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  Alert,
   Box,
-  Card,
-  CardContent,
+  Button,
   Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   FormControl,
   InputAdornment,
   InputLabel,
   MenuItem,
   Select,
+  Snackbar,
   Stack,
   TextField,
   ToggleButton,
   ToggleButtonGroup,
   Typography,
 } from "@mui/material";
+import AddRoundedIconRaw from "@mui/icons-material/AddRounded";
 import SearchRoundedIconRaw from "@mui/icons-material/SearchRounded";
 import ViewListRoundedIconRaw from "@mui/icons-material/ViewListRounded";
-import TuneRoundedIconRaw from "@mui/icons-material/TuneRounded";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import PageHeader from "../components/PageHeader";
 import CatalogItemCard from "../components/CatalogItemCard";
 import GridSquaresIcon from "../components/GridSquaresIcon";
 import { useCatalogStore } from "../store/catalogStore";
 import { filterCatalogItems } from "../utils/catalogSelectors";
 import resolveIconComponent from "../utils/resolveIconComponent";
 
+const AddRoundedIcon = resolveIconComponent(AddRoundedIconRaw);
 const SearchRoundedIcon = resolveIconComponent(SearchRoundedIconRaw);
 const ViewListRoundedIcon = resolveIconComponent(ViewListRoundedIconRaw);
-const TuneRoundedIcon = resolveIconComponent(TuneRoundedIconRaw);
-const MotionCard = motion(Card);
+const MotionCard = motion(Box);
+const CONTROL_HEIGHT = 46;
 
 const layoutToColumns = {
   "grid-3": { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))", xl: "repeat(3, minmax(0, 1fr))" },
@@ -49,30 +54,41 @@ const CatalogPage = () => {
   const {
     categories,
     subCategories,
+    allProducts,
     catalogItems,
+    catalogLoaded,
     layoutMode,
     filters,
     selectedItems,
+    loadCatalogData,
     setLayoutMode,
     updateFilters,
     clearFilters,
     toggleItemSelection,
     setSelectedImage,
+    createCatalog,
   } =
     useCatalogStore((state) => ({
       categories: state.categories,
       subCategories: state.subCategories,
+      allProducts: state.dbItems,
       catalogItems: state.catalogItems,
+      catalogLoaded: state.catalogLoaded,
       layoutMode: state.layoutMode,
       filters: state.filters,
       selectedItems: state.selectedItems,
+      loadCatalogData: state.loadCatalogData,
       setLayoutMode: state.setLayoutMode,
       updateFilters: state.updateFilters,
       clearFilters: state.clearFilters,
       toggleItemSelection: state.toggleItemSelection,
       setSelectedImage: state.setSelectedImage,
+      createCatalog: state.createCatalog,
     }));
   const [searchDraft, setSearchDraft] = useState(filters.search);
+  const [createCatalogOpen, setCreateCatalogOpen] = useState(false);
+  const [createCatalogDraft, setCreateCatalogDraft] = useState({ categoryId: "", subCategoryId: "" });
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -88,13 +104,25 @@ const CatalogPage = () => {
     }
   }, [filters.search]);
 
+  useEffect(() => {
+    if (!catalogLoaded) {
+      loadCatalogData();
+    }
+  }, [catalogLoaded, loadCatalogData]);
+
   const availableSubCategories = useMemo(() => {
     if (filters.categoryId === "all") {
-      return subCategories;
+      return subCategories.filter((subCategory) =>
+        catalogItems.some((item) => item.subCategoryId === subCategory.id),
+      );
     }
 
-    return subCategories.filter((subCategory) => subCategory.categoryId === filters.categoryId);
-  }, [filters.categoryId, subCategories]);
+    return subCategories.filter(
+      (subCategory) =>
+        subCategory.categoryId === filters.categoryId &&
+        catalogItems.some((item) => item.subCategoryId === subCategory.id),
+    );
+  }, [filters.categoryId, subCategories, catalogItems]);
 
   const filteredItems = useMemo(
     () =>
@@ -107,10 +135,91 @@ const CatalogPage = () => {
     [catalogItems, filters, categories, subCategories],
   );
 
-  const selectedCount = Object.keys(selectedItems).length;
   const activeLayoutMode = layoutToColumns[layoutMode] ? layoutMode : "grid-3";
   const isListMode = activeLayoutMode === "list";
-  const quickCategories = useMemo(() => categories.slice(0, 7), [categories]);
+  const quickCategories = useMemo(
+    () =>
+      categories
+        .filter((category) => catalogItems.some((item) => item.categoryId === category.id))
+        .slice(0, 7),
+    [categories, catalogItems],
+  );
+  const categoriesWithItems = useMemo(
+    () => categories.filter((category) => allProducts.some((item) => item.categoryId === category.id)),
+    [categories, allProducts],
+  );
+  const createCatalogSubCategories = useMemo(
+    () =>
+      subCategories.filter(
+        (subCategory) =>
+          subCategory.categoryId === createCatalogDraft.categoryId &&
+          allProducts.some(
+            (item) =>
+              item.categoryId === createCatalogDraft.categoryId &&
+              item.subCategoryId === subCategory.id,
+          ),
+      ),
+    [subCategories, allProducts, createCatalogDraft.categoryId],
+  );
+  const autoFilledItems = useMemo(
+    () =>
+      allProducts.filter(
+        (item) =>
+          item.categoryId === createCatalogDraft.categoryId &&
+          item.subCategoryId === createCatalogDraft.subCategoryId,
+      ),
+    [allProducts, createCatalogDraft.categoryId, createCatalogDraft.subCategoryId],
+  );
+
+  const handleOpenCreateCatalog = () => {
+    setCreateCatalogDraft({ categoryId: "", subCategoryId: "" });
+    setCreateCatalogOpen(true);
+  };
+
+  const handleCreateCatalog = async () => {
+    if (!createCatalogDraft.categoryId || !createCatalogDraft.subCategoryId) {
+      setSnackbar({
+        open: true,
+        message: "Select category and sub-category to create catalog.",
+        severity: "warning",
+      });
+      return;
+    }
+
+    if (autoFilledItems.length === 0) {
+      setSnackbar({
+        open: true,
+        message: "No items found for this category and sub-category.",
+        severity: "warning",
+      });
+      return;
+    }
+
+    try {
+      await createCatalog({
+        categoryId: createCatalogDraft.categoryId,
+        subCategoryId: createCatalogDraft.subCategoryId,
+      });
+      updateFilters({
+        search: "",
+        categoryId: createCatalogDraft.categoryId,
+        subCategoryId: createCatalogDraft.subCategoryId,
+      });
+      setSearchDraft("");
+      setCreateCatalogOpen(false);
+      setSnackbar({
+        open: true,
+        message: `Catalog created with ${autoFilledItems.length} product${autoFilledItems.length === 1 ? "" : "s"}.`,
+        severity: "success",
+      });
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: error?.response?.data?.message || "Failed to create catalog.",
+        severity: "error",
+      });
+    }
+  };
 
   const handleCategoryChange = (event) => {
     const categoryId = event.target.value;
@@ -133,40 +242,183 @@ const CatalogPage = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.34, ease: "easeOut" }}
         sx={{
-          mb: 2.4,
-          borderRadius: "12px",
-          overflow: "hidden",
-          border: "1px solid",
-          borderColor: "divider",
-          background:
-            "radial-gradient(circle at 0% 30%, rgba(196,181,253,0.38), transparent 42%), radial-gradient(circle at 100% 20%, rgba(186,230,253,0.38), transparent 38%), radial-gradient(circle at 30% 100%, rgba(187,247,208,0.28), transparent 36%), #ffffff",
+          mb: 1.8,
+          borderRadius: 0,
+          overflow: "visible",
+          border: "none",
+          backgroundColor: "transparent",
+          boxShadow: "none",
         }}
       >
-        <CardContent sx={{ p: { xs: 2.1, md: 3 } }}>
+        <Box sx={{ p: { xs: 0, md: 0 } }}>
           <Stack spacing={1.4}>
-            <Typography variant="h2" sx={{ lineHeight: 1.02, maxWidth: 900 }}>
-              Curated Corporate Gifting Collections
-            </Typography>
-            <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 760 }}>
-              Explore premium gift boxes, signature desk essentials, and seasonal brand showcases built for high-end corporate experiences.
-            </Typography>
+            <Stack
+              direction={{ xs: "column", lg: "row" }}
+              justifyContent="space-between"
+              alignItems={{ xs: "flex-start", lg: "flex-start" }}
+              spacing={1.8}
+            >
+              <Box sx={{ maxWidth: 1000 }}>
+                <Typography
+                  variant="h2"
+                  sx={{
+                    lineHeight: { xs: 1.08, md: 1.04 },
+                    fontSize: { xs: "2.35rem", md: "3.15rem" },
+                    letterSpacing: "0.005em",
+                    maxWidth: 1000,
+                  }}
+                >
+                  Curated Corporate Gifting Collections
+                </Typography>
+                {/* <Typography variant="body1" color="text.secondary" sx={{ mt: 1.1, maxWidth: 640 }}>
+                  Explore premium gift boxes, signature desk essentials, and seasonal brand showcases built for high-end corporate experiences.
+                </Typography> */}
+              </Box>
+            </Stack>
 
-            <TextField
-              size="medium"
-              placeholder="Search collections, products, or gift concepts"
-              value={searchDraft}
-              onChange={(event) => setSearchDraft(event.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
+            <Stack
+              direction={{ xs: "column", lg: "row" }}
+              spacing={1}
+              alignItems={{ xs: "stretch", lg: "center" }}
+              useFlexGap
+              flexWrap="wrap"
+              sx={{ width: "100%" }}
+            >
+              <TextField
+                size="medium"
+                placeholder="Search collections, products, or gift concepts"
+                value={searchDraft}
+                onChange={(event) => setSearchDraft(event.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
                     <SearchRoundedIcon fontSize="small" />
                   </InputAdornment>
                 ),
               }}
-              sx={{ maxWidth: 540, mt: 0.6 }}
-            />
+                sx={{
+                  width: { xs: "100%", lg: "min(30vw, 460px)" },
+                  minWidth: { lg: 280 },
+                  "& .MuiOutlinedInput-root": {
+                    height: CONTROL_HEIGHT,
+                  },
+                }}
+              />
+              <FormControl
+                size="medium"
+                sx={{
+                  width: { xs: "100%", sm: 220 },
+                  "& .MuiOutlinedInput-root": {
+                    height: CONTROL_HEIGHT,
+                  },
+                }}
+              >
+                <Select value={filters.categoryId} onChange={handleCategoryChange}>
+                  <MenuItem value="all">All Categories</MenuItem>
+                  {categories
+                    .filter((category) => catalogItems.some((entry) => entry.categoryId === category.id))
+                    .map((category) => (
+                      <MenuItem value={category.id} key={category.id}>
+                        {category.name}
+                      </MenuItem>
+                    ))}
+                </Select>
+              </FormControl>
 
-            <Stack direction="row" spacing={0.85} useFlexGap flexWrap="wrap">
+              <FormControl
+                size="medium"
+                sx={{
+                  width: { xs: "100%", sm: 230 },
+                  "& .MuiOutlinedInput-root": {
+                    height: CONTROL_HEIGHT,
+                  },
+                }}
+              >
+                <Select
+                  value={filters.subCategoryId}
+                  onChange={(event) => updateFilters({ subCategoryId: event.target.value })}
+                >
+                  <MenuItem value="all">All Sub-Categories</MenuItem>
+                  {availableSubCategories.map((subCategory) => (
+                    <MenuItem value={subCategory.id} key={subCategory.id}>
+                      {subCategory.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              <Button
+                variant="contained"
+                startIcon={<AddRoundedIcon />}
+                onClick={handleOpenCreateCatalog}
+                disabled={categoriesWithItems.length === 0}
+                sx={{
+                  px: 2.2,
+                  height: CONTROL_HEIGHT,
+                  minWidth: 180,
+                }}
+              >
+                Create Catalog
+              </Button>
+
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: { lg: "auto" } }}>
+                <Typography
+                  component="button"
+                  onClick={() => {
+                    clearFilters();
+                    setSearchDraft("");
+                  }}
+                  type="button"
+                  sx={{
+                    p: 0,
+                    m: 0,
+                    border: 0,
+                    bgcolor: "transparent",
+                    color: "text.secondary",
+                    cursor: "pointer",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    lineHeight: 1,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  Reset
+                </Typography>
+
+                <ToggleButtonGroup
+                  value={activeLayoutMode}
+                  exclusive
+                  size="small"
+                  onChange={(event, value) => {
+                    if (value) {
+                      setLayoutMode(value);
+                    }
+                  }}
+                  aria-label="catalog-layout-mode"
+                  sx={{
+                    "& .MuiToggleButton-root": {
+                      minWidth: CONTROL_HEIGHT,
+                      width: CONTROL_HEIGHT,
+                      height: CONTROL_HEIGHT,
+                      p: 0.3,
+                    },
+                  }}
+                >
+                  {layoutToggleOptions.map((layoutOption) => (
+                    <ToggleButton
+                      value={layoutOption.value}
+                      key={layoutOption.value}
+                      aria-label={layoutOption.label}
+                      title={layoutOption.label}
+                    >
+                      {layoutOption.icon}
+                    </ToggleButton>
+                  ))}
+                </ToggleButtonGroup>
+              </Stack>
+            </Stack>
+
+            <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap" sx={{ maxWidth: 760 }}>
               <Chip
                 size="small"
                 label="All Collections"
@@ -186,153 +438,25 @@ const CatalogPage = () => {
               ))}
             </Stack>
           </Stack>
-        </CardContent>
+        </Box>
       </MotionCard>
 
-      <Card
-        sx={{
-          mb: 2.4,
-          border: "1px solid",
-          borderColor: "divider",
-          borderRadius: "12px",
-          position: { md: "sticky" },
-          top: { md: 102 },
-          zIndex: 2,
-          bgcolor: "rgba(255,255,255,0.9)",
-          backdropFilter: "blur(10px)",
-        }}
-      >
-        <CardContent sx={{ p: { xs: 1.8, md: 2 } }}>
-          <Stack
-            direction="row"
-            spacing={1.2}
-            useFlexGap
-            flexWrap="wrap"
-            alignItems="center"
-          >
-            <Chip icon={<TuneRoundedIcon fontSize="small" />} label="Filters" variant="outlined" />
-            <FormControl
-              size="small"
-              sx={{
-                width: { xs: "100%", sm: 220 },
-                flexShrink: 0,
-              }}
-            >
-              <InputLabel>Category</InputLabel>
-              <Select value={filters.categoryId} label="Category" onChange={handleCategoryChange}>
-                <MenuItem value="all">All Categories</MenuItem>
-                {categories.map((category) => (
-                  <MenuItem value={category.id} key={category.id}>
-                    {category.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            <FormControl
-              size="small"
-              sx={{
-                width: { xs: "100%", sm: 230 },
-                flexShrink: 0,
-              }}
-            >
-              <InputLabel>Sub-Category</InputLabel>
-              <Select
-                value={filters.subCategoryId}
-                label="Sub-Category"
-                onChange={(event) => updateFilters({ subCategoryId: event.target.value })}
-              >
-                <MenuItem value="all">All Sub-Categories</MenuItem>
-                {availableSubCategories.map((subCategory) => (
-                  <MenuItem value={subCategory.id} key={subCategory.id}>
-                    {subCategory.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            <Stack
-              direction="row"
-              spacing={1}
-              alignItems="center"
-              sx={{
-                ml: { lg: "auto" },
-              }}
-            >
-              <Chip size="small" color="secondary" label={`${selectedCount} selected`} />
-              <Typography
-                component="button"
-                onClick={() => {
-                  clearFilters();
-                  setSearchDraft("");
-                }}
-                type="button"
-                sx={{
-                  p: 0,
-                  m: 0,
-                  border: 0,
-                  bgcolor: "transparent",
-                  color: "text.secondary",
-                  cursor: "pointer",
-                  fontSize: 13,
-                  fontWeight: 600,
-                  whiteSpace: "nowrap",
-                }}
-              >
-                Reset
-              </Typography>
-            </Stack>
-
-            <ToggleButtonGroup
-              value={activeLayoutMode}
-              exclusive
-              size="small"
-              onChange={(event, value) => {
-                if (value) {
-                  setLayoutMode(value);
-                }
-              }}
-              aria-label="catalog-layout-mode"
-              sx={{
-                "& .MuiToggleButton-root": {
-                  minWidth: 42,
-                  width: 42,
-                  height: 42,
-                  p: 0.3,
-                },
-              }}
-            >
-              {layoutToggleOptions.map((layoutOption) => (
-                <ToggleButton
-                  value={layoutOption.value}
-                  key={layoutOption.value}
-                  aria-label={layoutOption.label}
-                  title={layoutOption.label}
-                >
-                  {layoutOption.icon}
-                </ToggleButton>
-              ))}
-            </ToggleButtonGroup>
-          </Stack>
-        </CardContent>
-      </Card>
-
       {filteredItems.length === 0 ? (
-        <Card sx={{ border: "1px dashed", borderColor: "divider", borderRadius: "12px" }}>
-          <CardContent sx={{ textAlign: "center", py: 6 }}>
+        <Box sx={{ border: "1px dashed", borderColor: "divider", borderRadius: "12px", boxShadow: "none" }}>
+          <Box sx={{ textAlign: "center", py: 6 }}>
             <Typography variant="h5" sx={{ mb: 1 }}>
               No products match your curation filters
             </Typography>
             <Typography variant="body2" color="text.secondary">
               Adjust category, sub-category, or keyword search to view available premium gifting products.
             </Typography>
-          </CardContent>
-        </Card>
+          </Box>
+        </Box>
       ) : (
         <Box
           sx={{
             display: "grid",
-            gap: { xs: 1.5, md: 2.4 },
+            gap: { xs: 1, md: 1.25 },
             gridTemplateColumns: layoutToColumns[activeLayoutMode],
           }}
         >
@@ -353,6 +477,84 @@ const CatalogPage = () => {
           ))}
         </Box>
       )}
+
+      <Dialog open={createCatalogOpen} onClose={() => setCreateCatalogOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle>Create Catalog</DialogTitle>
+        <DialogContent>
+          <Stack spacing={1.3} sx={{ mt: 0.5 }}>
+            <FormControl size="small" fullWidth>
+              <InputLabel>Category Selection</InputLabel>
+              <Select
+                value={createCatalogDraft.categoryId}
+                label="Category Selection"
+                onChange={(event) =>
+                  setCreateCatalogDraft({
+                    categoryId: event.target.value,
+                    subCategoryId: "",
+                  })
+                }
+              >
+                {categoriesWithItems.map((category) => (
+                  <MenuItem key={category.id} value={category.id}>
+                    {category.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <FormControl size="small" fullWidth disabled={!createCatalogDraft.categoryId}>
+              <InputLabel>Sub-Category Selection</InputLabel>
+              <Select
+                value={createCatalogDraft.subCategoryId}
+                label="Sub-Category Selection"
+                onChange={(event) =>
+                  setCreateCatalogDraft((previous) => ({
+                    ...previous,
+                    subCategoryId: event.target.value,
+                  }))
+                }
+              >
+                {createCatalogSubCategories.map((subCategory) => (
+                  <MenuItem key={subCategory.id} value={subCategory.id}>
+                    {subCategory.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <TextField
+              label="Product Name (Auto Filled)"
+              size="small"
+              fullWidth
+              multiline
+              minRows={3}
+              value={autoFilledItems.length > 0 ? autoFilledItems.map((item) => item.name).join("\n") : ""}
+              placeholder="Products will auto-fill after selecting category and sub-category."
+              InputProps={{ readOnly: true }}
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setCreateCatalogOpen(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleCreateCatalog}>
+            Create Catalog
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={2400}
+        onClose={() => setSnackbar((previous) => ({ ...previous, open: false }))}
+      >
+        <Alert
+          severity={snackbar.severity}
+          variant="filled"
+          onClose={() => setSnackbar((previous) => ({ ...previous, open: false }))}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

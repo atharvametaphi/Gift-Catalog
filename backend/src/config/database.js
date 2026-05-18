@@ -3,7 +3,8 @@ import dns from "node:dns";
 import env from "./env.js";
 import Category from "../models/Category.js";
 import SubCategory from "../models/SubCategory.js";
-import Item from "../models/Item.js";
+import Product from "../models/Item.js";
+import Catalog from "../models/Catalog.js";
 import User from "../models/User.js";
 
 const safeCreateCollection = async (model) => {
@@ -47,7 +48,8 @@ const initializeCollections = async () => {
     safeCreateCollection(User),
     safeCreateCollection(Category),
     safeCreateCollection(SubCategory),
-    safeCreateCollection(Item),
+    safeCreateCollection(Product),
+    safeCreateCollection(Catalog),
   ]);
 };
 

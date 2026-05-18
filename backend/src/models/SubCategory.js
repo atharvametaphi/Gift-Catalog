@@ -11,6 +11,16 @@ const subCategorySchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    description: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    status: {
+      type: String,
+      enum: ["active", "inactive"],
+      default: "active",
+    },
   },
   {
     timestamps: true,

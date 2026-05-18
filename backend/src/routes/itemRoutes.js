@@ -1,12 +1,12 @@
 import { Router } from "express";
 import { createItem, deleteItem, getItems, updateItem } from "../controllers/catalogController.js";
-import { protect } from "../middleware/authMiddleware.js";
+import { authorizeRoles, protect } from "../middleware/authMiddleware.js";
 
 const router = Router();
 
 router.get("/", protect, getItems);
-router.post("/", protect, createItem);
-router.put("/:id", protect, updateItem);
-router.delete("/:id", protect, deleteItem);
+router.post("/", protect, authorizeRoles("admin", "manager"), createItem);
+router.put("/:id", protect, authorizeRoles("admin", "manager"), updateItem);
+router.delete("/:id", protect, authorizeRoles("admin", "manager"), deleteItem);
 
 export default router;

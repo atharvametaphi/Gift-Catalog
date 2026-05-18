@@ -8,6 +8,7 @@ import GeneratePdfPage from "../pages/GeneratePdfPage";
 import ItemsPage from "../pages/ItemsPage";
 import LoginPage from "../pages/LoginPage";
 import SubCategoriesPage from "../pages/SubCategoriesPage";
+import UserManagementPage from "../pages/UserManagementPage";
 import ProtectedRoute from "./ProtectedRoute";
 
 const AppRoutes = () => (
@@ -20,14 +21,21 @@ const AppRoutes = () => (
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="dashboards" element={<Navigate to="/dashboard" replace />} />
         <Route path="catalog" element={<CatalogPage />} />
-        <Route path="categories" element={<CategoriesPage />} />
-        <Route path="sub-categories" element={<SubCategoriesPage />} />
-        <Route path="items" element={<ItemsPage />} />
+        <Route element={<ProtectedRoute allowedRoles={["admin", "manager"]} />}>
+          <Route path="categories" element={<CategoriesPage />} />
+          <Route path="sub-categories" element={<SubCategoriesPage />} />
+          <Route path="products" element={<ItemsPage />} />
+        </Route>
+        <Route path="items" element={<Navigate to="/products" replace />} />
         <Route path="catalog/items/:itemId" element={<CatalogItemDetailsPage />} />
         <Route path="generate-pdf" element={<GeneratePdfPage />} />
+        <Route path="settings" element={<Navigate to="/settings/user-management" replace />} />
+        <Route path="settings/user-management" element={<ProtectedRoute allowedRoles={["admin"]} />}>
+          <Route index element={<UserManagementPage />} />
+        </Route>
         <Route path="catalog/categories" element={<Navigate to="/categories" replace />} />
         <Route path="catalog/sub-categories" element={<Navigate to="/sub-categories" replace />} />
-        <Route path="catalog/items" element={<Navigate to="/items" replace />} />
+        <Route path="catalog/items" element={<Navigate to="/products" replace />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Route>
     </Route>

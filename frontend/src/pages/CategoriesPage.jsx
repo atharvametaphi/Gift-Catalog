@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Box,
@@ -9,9 +9,13 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Chip,
+  FormControl,
   IconButton,
+  InputLabel,
   Menu,
   MenuItem,
+  Select,
   Snackbar,
   Stack,
   Table,
@@ -35,8 +39,9 @@ const MoreVertRoundedIcon = resolveIconComponent(MoreVertRoundedIconRaw);
 const isDatabaseId = (value) => /^[a-fA-F0-9]{24}$/.test(value || "");
 
 const CategoriesPage = () => {
-  const { categories, addCategory, updateCategory, deleteCategory } = useCatalogStore((state) => ({
+  const { categories, loadCatalogData, addCategory, updateCategory, deleteCategory } = useCatalogStore((state) => ({
     categories: state.categories,
+    loadCatalogData: state.loadCatalogData,
     addCategory: state.addCategory,
     updateCategory: state.updateCategory,
     deleteCategory: state.deleteCategory,
@@ -50,6 +55,8 @@ const CategoriesPage = () => {
   const { control, handleSubmit, reset } = useForm({
     defaultValues: {
       name: "",
+      description: "",
+      status: "active",
     },
   });
 
@@ -62,6 +69,10 @@ const CategoriesPage = () => {
     [categories],
   );
 
+  useEffect(() => {
+    loadCatalogData();
+  }, [loadCatalogData]);
+
   const closeDialog = () => {
     if (submitting) {
       return;
@@ -70,13 +81,13 @@ const CategoriesPage = () => {
     setOpenDialog(false);
     setDialogMode("add");
     setActionRow(null);
-    reset({ name: "" });
+    reset({ name: "", description: "", status: "active" });
   };
 
   const openAddDialog = () => {
     setDialogMode("add");
     setActionRow(null);
-    reset({ name: "" });
+    reset({ name: "", description: "", status: "active" });
     setOpenDialog(true);
   };
 
@@ -86,7 +97,11 @@ const CategoriesPage = () => {
     }
 
     setDialogMode("edit");
-    reset({ name: actionRow.name });
+    reset({
+      name: actionRow.name,
+      description: actionRow.description || "",
+      status: actionRow.status || "active",
+    });
     setOpenDialog(true);
     setActionAnchorEl(null);
   };
@@ -131,6 +146,8 @@ const CategoriesPage = () => {
         await updateCategory({
           id: actionRow.id,
           name: values.name,
+          description: values.description,
+          status: values.status,
         });
         setSnackbar({
           open: true,
@@ -140,6 +157,8 @@ const CategoriesPage = () => {
       } else {
         await addCategory({
           name: values.name,
+          description: values.description,
+          status: values.status,
         });
         setSnackbar({
           open: true,
@@ -151,7 +170,7 @@ const CategoriesPage = () => {
       setOpenDialog(false);
       setDialogMode("add");
       setActionRow(null);
-      reset({ name: "" });
+      reset({ name: "", description: "", status: "active" });
     } catch (error) {
       setSnackbar({
         open: true,
@@ -197,6 +216,45 @@ const CategoriesPage = () => {
                 />
               )}
             />
+            <Controller
+              name="description"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  label="Description (Optional)"
+                  size="small"
+                  fullWidth
+                  multiline
+                  minRows={2}
+                  sx={{ mt: 1.2 }}
+                />
+              )}
+            />
+            <Controller
+              name="status"
+              control={control}
+              rules={{ required: "Status is required" }}
+              render={({ field, fieldState }) => (
+                <FormControl
+                  size="small"
+                  fullWidth
+                  error={Boolean(fieldState.error)}
+                  sx={{ mt: 1.2 }}
+                >
+                  <InputLabel>Status</InputLabel>
+                  <Select {...field} label="Status">
+                    <MenuItem value="active">Active</MenuItem>
+                    <MenuItem value="inactive">Inactive</MenuItem>
+                  </Select>
+                  {fieldState.error ? (
+                    <Typography variant="caption" color="error" sx={{ pl: 1.7, pt: 0.5 }}>
+                      {fieldState.error.message}
+                    </Typography>
+                  ) : null}
+                </FormControl>
+              )}
+            />
           </DialogContent>
           <DialogActions sx={{ px: 3, pb: 2 }}>
             <Button onClick={closeDialog} disabled={submitting}>
@@ -219,10 +277,6 @@ const CategoriesPage = () => {
                 px: 1.25,
                 py: 0.9,
               },
-              "& .MuiTableCell-root + .MuiTableCell-root": {
-                borderLeft: "1px solid",
-                borderLeftColor: "divider",
-              },
               "& .MuiTableHead-root .MuiTableCell-root": {
                 borderBottomWidth: 1.5,
                 borderBottomStyle: "solid",
@@ -232,6 +286,8 @@ const CategoriesPage = () => {
             <TableHead>
               <TableRow>
                 <TableCell sx={{ fontWeight: 700 }}>Category Name</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Description</TableCell>
+                <TableCell sx={{ fontWeight: 700, width: 120 }}>Status</TableCell>
                 <TableCell sx={{ fontWeight: 700, width: 56 }}>Action</TableCell>
               </TableRow>
             </TableHead>
@@ -239,6 +295,26 @@ const CategoriesPage = () => {
               {categoryRows.map((category) => (
                 <TableRow key={category.id}>
                   <TableCell>{category.name}</TableCell>
+                  <TableCell sx={{ color: "text.secondary" }}>
+                    {category.description?.trim() || "-"}
+                  </TableCell>
+                  <TableCell>
+                    <Chip
+                      size="small"
+                      label={category.status === "inactive" ? "Inactive" : "Active"}
+                      color={category.status === "inactive" ? "default" : "success"}
+                      variant={category.status === "inactive" ? "outlined" : "filled"}
+                      sx={
+                        category.status === "inactive"
+                          ? undefined
+                          : {
+                              bgcolor: "#dcfce7",
+                              color: "#14532d",
+                              borderColor: "#86efac",
+                            }
+                      }
+                    />
+                  </TableCell>
                   <TableCell>
                     <Tooltip title={category.dbRecord ? "Actions" : "Dummy data row"}>
                       <span>
