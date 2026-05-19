@@ -100,85 +100,91 @@ export const Catalogues: React.FC = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {catalogues.map((catalogue) => (
-              <div
-                key={catalogue.id}
-                className="rounded-lg overflow-hidden transition-all duration-300 hover:shadow-md"
-                style={{
-                  backgroundColor: colors.cardBg,
-                  border: `1px solid ${colors.border}`,
-                }}
-              >
-                <div className="p-3">
-                  <div className="mb-2">
-                    <h3
-                      className="text-sm mb-1 leading-snug line-clamp-2"
-                      style={{ color: colors.text.primary, fontWeight: 600 }}
-                    >
-                      {catalogue.catalogueTitle}
-                    </h3>
-                    <p className="text-xs" style={{ color: colors.text.secondary }}>
-                      {catalogue.clientName}
-                    </p>
-                  </div>
+            {catalogues.map((catalogue) => {
+              const descriptionText = String(catalogue.notes || '').trim();
+              const displayDescription = descriptionText.length > 0 ? descriptionText : 'No description';
 
-                  <div
-                    className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs mb-2"
-                    style={{
-                      backgroundColor: colors.hover,
-                      color: colors.accent.gold,
-                      fontWeight: 500,
-                    }}
-                  >
-                    <Package className="w-3 h-3" />
-                    {catalogue.products.length} {catalogue.products.length === 1 ? 'Product' : 'Products'}
-                  </div>
+              return (
+                <div
+                  key={catalogue.id}
+                  className="rounded-lg overflow-hidden transition-all duration-300 hover:shadow-md"
+                  style={{
+                    backgroundColor: colors.cardBg,
+                    border: `1px solid ${colors.border}`,
+                  }}
+                >
+                  <div className="p-3">
+                    <div className="mb-2">
+                      <h3
+                        className="text-sm mb-1 leading-snug line-clamp-2"
+                        style={{ color: colors.text.primary, fontWeight: 600 }}
+                      >
+                        {catalogue.catalogueTitle}
+                      </h3>
+                      <p className="text-xs" style={{ color: colors.text.secondary }}>
+                        {catalogue.clientName}
+                      </p>
+                    </div>
 
-                  {catalogue.notes && (
-                    <p className="text-xs mb-2 line-clamp-2 leading-relaxed" style={{ color: colors.text.tertiary }}>
-                      {catalogue.notes}
-                    </p>
-                  )}
-
-                  <div className="flex items-center gap-1 mb-2 text-xs" style={{ color: colors.text.tertiary }}>
-                    <Calendar className="w-3 h-3" />
-                    <span>{new Date(catalogue.createdAt).toLocaleDateString()}</span>
-                  </div>
-
-                  <div className="flex gap-2 pt-2 border-t" style={{ borderColor: colors.border }}>
-                    <Link
-                      to={`/catalogue/${catalogue.id}`}
-                      className="flex-1 px-3 py-2 rounded-lg text-center transition flex items-center justify-center gap-1 text-xs shadow-sm"
+                    <div
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs mb-2"
                       style={{
-                        backgroundColor: colors.accent.gold,
-                        color: '#FFFFFF',
+                        backgroundColor: colors.hover,
+                        color: colors.accent.gold,
                         fontWeight: 500,
                       }}
                     >
-                      <Eye className="w-3 h-3" />
-                      View & Edit
-                    </Link>
-                    <button
-                      onClick={() => handleDelete(catalogue)}
-                      className="px-3 py-2 rounded-lg transition"
-                      style={{
-                        border: `1px solid ${colors.border}`,
-                        color: '#DC2626',
-                        backgroundColor: 'transparent',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = 'rgba(220, 38, 38, 0.05)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = 'transparent';
-                      }}
+                      <Package className="w-3 h-3" />
+                      {catalogue.products.length} {catalogue.products.length === 1 ? 'Product' : 'Products'}
+                    </div>
+
+                    <p
+                      className="text-xs mb-2 line-clamp-2 leading-relaxed break-words min-h-[32px]"
+                      style={{ color: colors.text.tertiary }}
                     >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
+                      {displayDescription}
+                    </p>
+
+                    <div className="flex items-center gap-1 mb-2 text-xs" style={{ color: colors.text.tertiary }}>
+                      <Calendar className="w-3 h-3" />
+                      <span>{new Date(catalogue.createdAt).toLocaleDateString()}</span>
+                    </div>
+
+                    <div className="flex gap-2 pt-2 border-t" style={{ borderColor: colors.border }}>
+                      <Link
+                        to={`/catalogue/${catalogue.id}`}
+                        className="flex-1 px-3 py-2 rounded-lg text-center transition flex items-center justify-center gap-1 text-xs shadow-sm"
+                        style={{
+                          backgroundColor: colors.accent.gold,
+                          color: '#FFFFFF',
+                          fontWeight: 500,
+                        }}
+                      >
+                        <Eye className="w-3 h-3" />
+                        View & Edit
+                      </Link>
+                      <button
+                        onClick={() => handleDelete(catalogue)}
+                        className="px-3 py-2 rounded-lg transition"
+                        style={{
+                          border: `1px solid ${colors.border}`,
+                          color: '#DC2626',
+                          backgroundColor: 'transparent',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = 'rgba(220, 38, 38, 0.05)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                        }}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
