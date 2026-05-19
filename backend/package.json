@@ -10,6 +10,7 @@
     "seed:admin": "node src/utils/seedAdmin.js",
     "seed:catalog": "node src/utils/seedCatalogData.js",
     "seed:master-test": "node src/utils/seedMasterTestData.js",
+    "seed:product-meta": "node src/utils/seedProductMeta.js",
     "create:collections": "node src/utils/createCollections.js",
     "migrate:local-to-atlas": "node src/utils/migrateLocalToAtlas.js"
   },

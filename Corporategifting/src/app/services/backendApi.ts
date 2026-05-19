@@ -103,6 +103,8 @@ export const backendApi = {
     name: string;
     description?: string;
     status: 'active' | 'inactive';
+    sku?: string;
+    price?: number | null;
     images: string[];
   }) =>
     request('/products', {
@@ -117,6 +119,8 @@ export const backendApi = {
       name: string;
       description?: string;
       status: 'active' | 'inactive';
+      sku?: string;
+      price?: number | null;
       images: string[];
     },
   ) =>
@@ -185,4 +189,3 @@ export const backendApi = {
       method: 'DELETE',
     }),
 };
-

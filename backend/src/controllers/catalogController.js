@@ -30,6 +30,8 @@ const mapProduct = (doc) => ({
   categoryId: doc.categoryId || null,
   subCategoryId: doc.subCategoryId || null,
   images: Array.isArray(doc.images) ? doc.images : [],
+  sku: doc.sku || "",
+  price: typeof doc.price === "number" ? doc.price : null,
   createdAt: doc.createdAt,
 });
 
@@ -48,6 +50,7 @@ const isObjectId = (value) => mongoose.Types.ObjectId.isValid(value);
 
 const normalizeName = (value) => value?.trim();
 const normalizeStatus = (value) => String(value || "").trim().toLowerCase();
+const normalizeSku = (value) => String(value || "").trim().toUpperCase();
 
 export const getCategories = asyncHandler(async (req, res) => {
   const categories = await Category.find().sort({ createdAt: -1 }).lean();
@@ -252,6 +255,9 @@ export const createItem = asyncHandler(async (req, res) => {
   const name = normalizeName(req.body.name);
   const description = normalizeName(req.body.description) || "";
   const status = normalizeStatus(req.body.status);
+  const sku = normalizeSku(req.body.sku || req.body.itemCode);
+  const parsedPrice = Number(req.body.price);
+  const price = Number.isFinite(parsedPrice) ? parsedPrice : null;
   const images = Array.isArray(req.body.images) ? req.body.images.filter((entry) => typeof entry === "string" && entry.trim()) : [];
   const requestedCategoryId = normalizeName(req.body.categoryId) || null;
   const requestedSubCategoryId = normalizeName(req.body.subCategoryId) || null;
@@ -305,6 +311,8 @@ export const createItem = asyncHandler(async (req, res) => {
     name,
     description,
     status,
+    sku,
+    price,
     categoryId: resolvedCategoryId,
     subCategoryId: requestedSubCategoryId,
     images,
@@ -321,6 +329,9 @@ export const updateItem = asyncHandler(async (req, res) => {
   const name = normalizeName(req.body.name);
   const description = normalizeName(req.body.description) || "";
   const status = normalizeStatus(req.body.status);
+  const sku = normalizeSku(req.body.sku || req.body.itemCode);
+  const parsedPrice = Number(req.body.price);
+  const price = Number.isFinite(parsedPrice) ? parsedPrice : null;
   const images = Array.isArray(req.body.images) ? req.body.images.filter((entry) => typeof entry === "string" && entry.trim()) : [];
   const requestedCategoryId = normalizeName(req.body.categoryId) || null;
   const requestedSubCategoryId = normalizeName(req.body.subCategoryId) || null;
@@ -381,6 +392,8 @@ export const updateItem = asyncHandler(async (req, res) => {
   product.name = name;
   product.description = description;
   product.status = status;
+  product.sku = sku;
+  product.price = price;
   product.categoryId = resolvedCategoryId;
   product.subCategoryId = requestedSubCategoryId;
   product.images = images;

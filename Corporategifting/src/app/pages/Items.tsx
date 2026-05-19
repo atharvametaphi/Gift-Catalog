@@ -348,6 +348,8 @@ export const Items: React.FC = () => {
         name: productForm.itemName.trim(),
         description: (productForm.description || productForm.detailedDescription || '').trim(),
         status: productForm.status,
+        sku: productForm.itemCode.trim() || undefined,
+        price: productForm.price ? Number(productForm.price.replace(/,/g, '')) : null,
         images: productForm.images,
       });
 

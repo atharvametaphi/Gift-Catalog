@@ -53,8 +53,10 @@ const mapProduct = (entry: any): Item => {
     categoryId: String(entry?.categoryId || ''),
     subcategoryId: String(entry?.subCategoryId || ''),
     itemName: String(entry?.name || ''),
+    itemCode: String(entry?.sku || ''),
     shortDescription: String(entry?.description || ''),
     detailedDescription: String(entry?.description || ''),
+    price: typeof entry?.price === 'number' ? entry.price : undefined,
     status: entry?.status === 'inactive' ? 'inactive' : 'active',
     images: imageUrls.map((imageUrl: string, index: number) =>
       toItemImage(itemId, imageUrl, index, entry?.createdAt),

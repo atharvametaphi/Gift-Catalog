@@ -29,6 +29,15 @@ const productSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    sku: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    price: {
+      type: Number,
+      default: null,
+    },
   },
   {
     timestamps: true,
