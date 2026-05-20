@@ -4,21 +4,43 @@ import { STORAGE_KEYS } from '../mockData';
 import { FileText, Download, Eye, Trash2, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTheme } from '../context/ThemeContext';
+import { backendApi } from '../services/backendApi';
 
 export const AllPdfs: React.FC = () => {
   const [pdfs, setPdfs] = useState<PDFCatalogue[]>([]);
   const [showPreview, setShowPreview] = useState(false);
   const [previewUrl, setPreviewUrl] = useState('');
   const { colors } = useTheme();
+  const gridLabelMap: Record<string, string> = {
+    '4': '2×2',
+    '6': '3×2',
+    '9': '3×3',
+    '12': '4×3',
+    '16': '4×4',
+    '20': '5×4',
+  };
 
   useEffect(() => {
-    loadPdfs();
+    void loadPdfs();
   }, []);
 
-  const loadPdfs = () => {
+  const loadPdfs = async () => {
+    try {
+      const response = await backendApi.getPdfs();
+      const remotePdfs: PDFCatalogue[] = Array.isArray(response?.pdfs) ? response.pdfs : [];
+      setPdfs(remotePdfs);
+      localStorage.setItem(STORAGE_KEYS.PDFS, JSON.stringify(remotePdfs));
+      return;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to load PDFs from database.';
+      toast.error(message);
+    }
+
     const data = localStorage.getItem(STORAGE_KEYS.PDFS);
     if (data) {
       setPdfs(JSON.parse(data));
+    } else {
+      setPdfs([]);
     }
   };
 
@@ -37,10 +59,18 @@ export const AllPdfs: React.FC = () => {
 
   const handleDelete = (pdf: PDFCatalogue) => {
     if (confirm(`Delete PDF "${pdf.fileName}"?`)) {
-      const updated = pdfs.filter((p) => p.id !== pdf.id);
-      localStorage.setItem(STORAGE_KEYS.PDFS, JSON.stringify(updated));
-      setPdfs(updated);
-      toast.success('PDF deleted successfully');
+      void (async () => {
+        try {
+          await backendApi.deletePdf(pdf.id);
+          const updated = pdfs.filter((p) => p.id !== pdf.id);
+          localStorage.setItem(STORAGE_KEYS.PDFS, JSON.stringify(updated));
+          setPdfs(updated);
+          toast.success('PDF deleted successfully');
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Failed to delete PDF.';
+          toast.error(message);
+        }
+      })();
     }
   };
 
@@ -110,7 +140,7 @@ export const AllPdfs: React.FC = () => {
                       fontSize: '10px',
                     }}
                   >
-                    {pdf.productCount} {pdf.productCount === 1 ? 'Product' : 'Products'} â€¢ {pdf.gridLayout === '9' ? '3Ã—3' : '4Ã—4'} Grid
+                    {pdf.productCount} {pdf.productCount === 1 ? 'Product' : 'Products'} • {(gridLabelMap[String(pdf.gridLayout)] || 'Custom')} Grid
                   </div>
 
                   <div className="flex items-center gap-1 mb-2" style={{ color: colors.text.tertiary, fontSize: '10px' }}>

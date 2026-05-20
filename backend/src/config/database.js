@@ -6,6 +6,7 @@ import SubCategory from "../models/SubCategory.js";
 import Product from "../models/Item.js";
 import Catalog from "../models/Catalog.js";
 import User from "../models/User.js";
+import GeneratedPdf from "../models/GeneratedPdf.js";
 
 const safeCreateCollection = async (model) => {
   try {
@@ -50,6 +51,7 @@ const initializeCollections = async () => {
     safeCreateCollection(SubCategory),
     safeCreateCollection(Product),
     safeCreateCollection(Catalog),
+    safeCreateCollection(GeneratedPdf),
   ]);
 };
 

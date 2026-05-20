@@ -9,6 +9,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   isAuthenticated: boolean;
+  isLoading: boolean;
 }
 
 const defaultAuthValue: AuthContextType = {
@@ -16,6 +17,7 @@ const defaultAuthValue: AuthContextType = {
   login: async () => false,
   logout: () => {},
   isAuthenticated: false,
+  isLoading: true,
 };
 
 const AuthContext = createContext<AuthContextType>(defaultAuthValue);
@@ -30,7 +32,23 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    const token = getAuthToken();
+    const storedUser = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
+
+    if (!token || !storedUser) {
+      return null;
+    }
+
+    try {
+      const parsedUser = JSON.parse(storedUser) as User;
+      return parsedUser?.id ? parsedUser : null;
+    } catch {
+      localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+      return null;
+    }
+  });
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const storedUser = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
@@ -40,10 +58,30 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (!token) {
         localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
       }
+      setCurrentUser(null);
+      setIsLoading(false);
       return;
     }
 
-    const parsedUser = JSON.parse(storedUser) as User;
+    let parsedUser: User | null = null;
+    try {
+      parsedUser = JSON.parse(storedUser) as User;
+    } catch {
+      clearAuthToken();
+      localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+      setCurrentUser(null);
+      setIsLoading(false);
+      return;
+    }
+
+    if (!parsedUser?.id) {
+      clearAuthToken();
+      localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+      setCurrentUser(null);
+      setIsLoading(false);
+      return;
+    }
+
     setCurrentUser(parsedUser);
 
     backendApi
@@ -60,6 +98,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         clearAuthToken();
         localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
         setCurrentUser(null);
+      })
+      .finally(() => {
+        setIsLoading(false);
       });
   }, []);
 
@@ -98,6 +139,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     login,
     logout,
     isAuthenticated: !!currentUser,
+    isLoading,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

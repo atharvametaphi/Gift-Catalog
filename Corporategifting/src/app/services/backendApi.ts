@@ -188,4 +188,23 @@ export const backendApi = {
     request(`/users/${id}`, {
       method: 'DELETE',
     }),
+  getPdfs: () => request('/pdfs'),
+  createPdf: (payload: {
+    catalogueId: string;
+    catalogueTitle: string;
+    clientName: string;
+    fileName: string;
+    pdfDataUrl: string;
+    gridLayout: '4' | '6' | '9' | '12' | '16' | '20';
+    productCount: number;
+    createdBy?: string;
+  }) =>
+    request('/pdfs', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  deletePdf: (id: string) =>
+    request(`/pdfs/${id}`, {
+      method: 'DELETE',
+    }),
 };

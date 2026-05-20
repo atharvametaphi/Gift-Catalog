@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router';
 import { Toaster } from 'sonner';
 import { AuthProvider } from './context/AuthContext';
@@ -14,13 +13,8 @@ import { CatalogueDetail } from './pages/CatalogueDetail';
 import { AllPdfs } from './pages/AllPdfs';
 import { BulkUpload } from './pages/BulkUpload';
 import { Settings } from './pages/Settings';
-import { initializeMockData } from './mockData';
 
 export default function App() {
-  useEffect(() => {
-    initializeMockData();
-  }, []);
-
   return (
     <ThemeProvider>
       <AuthProvider>

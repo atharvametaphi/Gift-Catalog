@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Settings as SettingsType, User, Role } from '../types';
+import { Settings as SettingsType, User } from '../types';
 import { STORAGE_KEYS } from '../mockData';
 import { toast } from 'sonner';
 import { Save, Building, Plus, Edit2, Trash2, X, Users } from 'lucide-react';
@@ -8,15 +8,28 @@ import { useAuth } from '../context/AuthContext';
 import { backendApi } from '../services/backendApi';
 import { syncBackendToStorage } from '../services/storageSync';
 
+const buildDefaultSettings = (): SettingsType => ({
+  id: 'local-settings',
+  companyName: '',
+  contactEmail: '',
+  contactPhone: '',
+  address: '',
+  defaultPdfHeader: '',
+  defaultPdfFooter: '',
+  defaultThemeColor: '#C79B47',
+  defaultCurrency: 'INR',
+  createdAt: new Date(),
+  updatedAt: new Date(),
+});
+
 export const Settings: React.FC = () => {
-  const [settings, setSettings] = useState<SettingsType | null>(null);
+  const [settings, setSettings] = useState<SettingsType>(buildDefaultSettings);
   const [activeTab, setActiveTab] = useState<'company' | 'users'>('company');
   const { colors } = useTheme();
   const { currentUser } = useAuth();
 
   // User Management State
   const [users, setUsers] = useState<User[]>([]);
-  const [roles, setRoles] = useState<Role[]>([]);
   const [showUserModal, setShowUserModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
 
@@ -32,10 +45,18 @@ export const Settings: React.FC = () => {
 
   const loadData = async () => {
     const settingsData = localStorage.getItem(STORAGE_KEYS.SETTINGS);
-    const rolesData = localStorage.getItem(STORAGE_KEYS.ROLES);
-
-    if (settingsData) setSettings(JSON.parse(settingsData));
-    if (rolesData) setRoles(JSON.parse(rolesData));
+    if (settingsData) {
+      try {
+        setSettings({
+          ...buildDefaultSettings(),
+          ...JSON.parse(settingsData),
+        });
+      } catch (error) {
+        setSettings(buildDefaultSettings());
+      }
+    } else {
+      setSettings(buildDefaultSettings());
+    }
 
     if (String(currentUser?.role || '').toLowerCase() === 'admin') {
       try {
@@ -135,8 +156,6 @@ export const Settings: React.FC = () => {
   };
 
   const displayedUsers = users.filter((user) => user.id !== currentUser?.id);
-
-  if (!settings) return <div className="p-4" style={{ color: colors.text.primary }}>Loading...</div>;
 
   return (
     <div className="min-h-screen p-4" style={{ backgroundColor: colors.background }}>

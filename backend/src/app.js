@@ -12,6 +12,7 @@ import subCategoryRoutes from "./routes/subCategoryRoutes.js";
 import itemRoutes from "./routes/itemRoutes.js";
 import catalogRoutes from "./routes/catalogRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
+import pdfRoutes from "./routes/pdfRoutes.js";
 import env from "./config/env.js";
 import { errorHandler, notFound } from "./middleware/errorMiddleware.js";
 
@@ -57,7 +58,7 @@ app.use(
   }),
 );
 app.use(morgan("dev"));
-app.use(express.json({ limit: "1mb" }));
+app.use(express.json({ limit: "30mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(`/${env.uploadDir}`, express.static(uploadPath));
 
@@ -83,6 +84,7 @@ app.use(`${API_PREFIX}/products`, itemRoutes);
 app.use(`${API_PREFIX}/items`, itemRoutes);
 app.use(`${API_PREFIX}/catalogs`, catalogRoutes);
 app.use(`${API_PREFIX}/users`, userRoutes);
+app.use(`${API_PREFIX}/pdfs`, pdfRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

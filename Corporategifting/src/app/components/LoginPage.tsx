@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import { Lock, Mail } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
-import logo from '../../imports/image-3.png';
+import logo from '../../imports/logo.png';
 
 export const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -32,11 +32,6 @@ export const LoginPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const fillDemoCredentials = () => {
-    setEmail('dummy.admin@giftcatalog.com');
-    setPassword('1234567890');
   };
 
   return (
@@ -117,32 +112,6 @@ export const LoginPage: React.FC = () => {
               {isLoading ? 'Signing in...' : 'Sign In'}
             </button>
           </form>
-
-          <div className="mt-4 p-3 rounded-lg" style={{ backgroundColor: colors.hover, border: `1px solid ${colors.border}` }}>
-            <p className="text-xs font-medium mb-2" style={{ color: colors.text.primary }}>Demo Credentials:</p>
-            <div className="space-y-1 text-xs">
-              <p style={{ color: colors.text.secondary }}>Email: <span className="font-mono" style={{ color: colors.accent.gold }}>dummy.admin@giftcatalog.com</span></p>
-              <p style={{ color: colors.text.secondary }}>Password: <span className="font-mono" style={{ color: colors.accent.gold }}>1234567890</span></p>
-            </div>
-            <button
-              type="button"
-              onClick={fillDemoCredentials}
-              className="mt-2 w-full font-medium py-2 rounded-lg transition duration-200 text-sm"
-              style={{
-                backgroundColor: colors.background,
-                border: `1px solid ${colors.border}`,
-                color: colors.text.primary,
-              }}
-            >
-              Use Demo Credentials
-            </button>
-          </div>
-
-          <div className="mt-4 text-center">
-            <p className="text-xs" style={{ color: colors.text.tertiary }}>
-              This application uses backend authentication
-            </p>
-          </div>
         </div>
       </div>
     </div>

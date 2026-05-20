@@ -17,7 +17,7 @@ import {
   ChevronRight,
   FileText,
 } from 'lucide-react';
-import logo from '../../imports/image-3.png';
+import logo from '../../imports/logo.png';
 
 interface MenuItem {
   path?: string;
@@ -232,8 +232,18 @@ export const Layout: React.FC = () => {
         </div>
       </aside>
 
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-auto" style={{ backgroundColor: colors.background }}>
         <Outlet />
+        <footer
+          className="px-4 py-3 text-center text-xs border-t mt-2"
+          style={{
+            borderColor: colors.border,
+            color: colors.text.secondary,
+            backgroundColor: colors.cardBg,
+          }}
+        >
+          Copyright Metaphi Innovations Private Limited
+        </footer>
       </main>
     </div>
   );

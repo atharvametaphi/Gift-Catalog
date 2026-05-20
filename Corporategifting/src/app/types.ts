@@ -102,7 +102,7 @@ export interface PDFCatalogue {
   clientName: string;
   fileName: string;
   pdfDataUrl: string;
-  gridLayout: '9' | '16';
+  gridLayout: '4' | '6' | '9' | '12' | '16' | '20';
   productCount: number;
   createdBy: string;
   createdAt: Date;
