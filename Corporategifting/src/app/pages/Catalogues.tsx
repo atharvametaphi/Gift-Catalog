@@ -87,7 +87,7 @@ export const Catalogues: React.FC = () => {
               Create your first catalogue from the Products page
             </p>
             <Link
-              to="/items"
+              to="/products"
               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg transition shadow-sm text-sm"
               style={{
                 backgroundColor: colors.accent.gold,

@@ -30,17 +30,18 @@ export default function App() {
                   </ProtectedRoute>
                 }
               >
-                <Route index element={<Navigate to="/items" replace />} />
+                <Route index element={<Navigate to="/categories" replace />} />
                 <Route path="categories" element={<Categories />} />
                 <Route path="subcategories" element={<Subcategories />} />
-                <Route path="items" element={<Items />} />
+                <Route path="products" element={<Items />} />
+                <Route path="items" element={<Navigate to="/products" replace />} />
                 <Route path="catalogues" element={<Catalogues />} />
                 <Route path="catalogue/:id" element={<CatalogueDetail />} />
                 <Route path="all-pdfs" element={<AllPdfs />} />
                 <Route path="bulk-upload" element={<BulkUpload />} />
                 <Route path="settings" element={<Settings />} />
               </Route>
-              <Route path="*" element={<Navigate to="/items" replace />} />
+              <Route path="*" element={<Navigate to="/categories" replace />} />
             </Routes>
             <Toaster position="top-right" richColors />
           </div>

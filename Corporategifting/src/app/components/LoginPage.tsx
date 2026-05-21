@@ -22,7 +22,7 @@ export const LoginPage: React.FC = () => {
       const success = await login(email, password);
       if (success) {
         toast.success('Login successful!');
-        navigate('/items');
+        navigate('/categories');
       } else {
         toast.error('Invalid email or password');
       }

@@ -17,7 +17,8 @@ import {
   ChevronRight,
   FileText,
 } from 'lucide-react';
-import logo from '../../imports/logo.png';
+``
+const logo = '/logo.png';
 
 interface MenuItem {
   path?: string;
@@ -35,7 +36,7 @@ const menuItems: MenuItem[] = [
       { path: '/subcategories', label: 'Subcategories', icon: GitBranch },
     ]
   },
-  { path: '/items', label: 'Products', icon: Package },
+  { path: '/products', label: 'Products', icon: Package },
   { path: '/catalogues', label: 'Catalogues', icon: BookOpen },
   { path: '/all-pdfs', label: 'All PDFs', icon: FileText },
   { path: '/settings', label: 'Settings', icon: Settings },
@@ -242,7 +243,7 @@ export const Layout: React.FC = () => {
             backgroundColor: colors.cardBg,
           }}
         >
-          Copyright Metaphi Innovations Private Limited
+          Powered by Metaphi Innovations Private Limited @ 2026.
         </footer>
       </main>
     </div>

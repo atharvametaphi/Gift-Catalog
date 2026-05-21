@@ -88,7 +88,7 @@ export const Dashboard: React.FC = () => {
   ];
 
   const quickActions = [
-    { label: 'View Products', path: '/items', icon: Package, color: 'bg-blue-600' },
+    { label: 'View Products', path: '/products', icon: Package, color: 'bg-blue-600' },
     { label: 'View Catalogues', path: '/catalogues', icon: FileText, color: 'bg-purple-600' },
     { label: 'All PDFs', path: '/all-pdfs', icon: FileText, color: 'bg-green-600' },
     { label: 'Categories', path: '/categories', icon: Plus, color: 'bg-orange-600' },

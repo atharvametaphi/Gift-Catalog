@@ -22,6 +22,30 @@ const buildDefaultSettings = (): SettingsType => ({
   updatedAt: new Date(),
 });
 
+const sanitizeSettingText = (value: unknown): string => {
+  const text = String(value || '').trim();
+  if (!text) {
+    return '';
+  }
+
+  const lowerText = text.toLowerCase();
+  const dummyMarkers = ['dummy', 'demo', 'example', 'sample', 'test', 'your company', 'your email', 'your phone', 'your address'];
+  const isDummy = dummyMarkers.some((marker) => lowerText.includes(marker));
+
+  return isDummy ? '' : text;
+};
+
+// const sanitizeLoadedSettings = (raw: Partial<SettingsType>): SettingsType => ({
+//   ...buildDefaultSettings(),
+//   ...raw,
+//   companyName: sanitizeSettingText(raw.companyName),
+//   contactEmail: sanitizeSettingText(raw.contactEmail),
+//   contactPhone: sanitizeSettingText(raw.contactPhone),
+//   address: sanitizeSettingText(raw.address),
+//   defaultPdfHeader: sanitizeSettingText(raw.defaultPdfHeader),
+//   defaultPdfFooter: sanitizeSettingText(raw.defaultPdfFooter),
+// });
+
 export const Settings: React.FC = () => {
   const [settings, setSettings] = useState<SettingsType>(buildDefaultSettings);
   const [activeTab, setActiveTab] = useState<'company' | 'users'>('company');
@@ -36,6 +60,7 @@ export const Settings: React.FC = () => {
   const [userForm, setUserForm] = useState({
     name: '',
     email: '',
+    password: '',
     status: 'active' as 'active' | 'inactive',
   });
 
@@ -45,18 +70,17 @@ export const Settings: React.FC = () => {
 
   const loadData = async () => {
     const settingsData = localStorage.getItem(STORAGE_KEYS.SETTINGS);
-    if (settingsData) {
-      try {
-        setSettings({
-          ...buildDefaultSettings(),
-          ...JSON.parse(settingsData),
-        });
-      } catch (error) {
-        setSettings(buildDefaultSettings());
-      }
-    } else {
-      setSettings(buildDefaultSettings());
-    }
+    // if (settingsData) {
+    //   try {
+    //     // const sanitizedSettings = sanitizeLoadedSettings(JSON.parse(settingsData));
+    //     // setSettings(sanitizedSettings);
+    //     // localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(sanitizedSettings));
+    //   } catch (error) {
+    //     setSettings(buildDefaultSettings());
+    //   }
+    // } else {
+    //   setSettings(buildDefaultSettings());
+    // }
 
     if (String(currentUser?.role || '').toLowerCase() === 'admin') {
       try {
@@ -90,6 +114,7 @@ export const Settings: React.FC = () => {
     setUserForm({
       name: '',
       email: '',
+      password: '',
       status: 'active',
     });
     setShowUserModal(true);
@@ -100,6 +125,7 @@ export const Settings: React.FC = () => {
     setUserForm({
       name: user.name,
       email: user.email,
+      password: '',
       status: user.status,
     });
     setShowUserModal(true);
@@ -109,6 +135,18 @@ export const Settings: React.FC = () => {
     if (!userForm.name || !userForm.email) {
       toast.error('Please fill in all required fields');
       return;
+    }
+
+    if (!editingUser) {
+      if (!userForm.password.trim()) {
+        toast.error('Password is required');
+        return;
+      }
+
+      if (userForm.password.trim().length < 8) {
+        toast.error('Password must be at least 8 characters');
+        return;
+      }
     }
 
     try {
@@ -127,11 +165,11 @@ export const Settings: React.FC = () => {
         await backendApi.createUser({
           name: userForm.name.trim(),
           email: userForm.email.trim(),
-          password: 'ChangeMe123',
+          password: userForm.password.trim(),
           role: 'viewer',
           status: userForm.status,
         });
-        toast.success('User created successfully. Default password: ChangeMe123');
+        toast.success('User created successfully');
       }
 
       await loadData();
@@ -472,6 +510,23 @@ export const Settings: React.FC = () => {
                   placeholder="Enter email address"
                 />
               </div>
+              {!editingUser && (
+                <div>
+                  <label className="block text-xs mb-1" style={{ color: colors.text.secondary, fontWeight: 500 }}>Password *</label>
+                  <input
+                    type="password"
+                    value={userForm.password}
+                    onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:outline-none text-sm"
+                    style={{
+                      backgroundColor: colors.background,
+                      border: `1px solid ${colors.border}`,
+                      color: colors.text.primary,
+                    }}
+                    placeholder="Enter password"
+                  />
+                </div>
+              )}
               <div>
                 <label className="block text-xs mb-1" style={{ color: colors.text.secondary, fontWeight: 500 }}>Status *</label>
                 <select
